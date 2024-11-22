@@ -1,13 +1,10 @@
 <?php
 session_start();
 require '../backend/db.php';
-require 'navigation.php';
+require '../backend/auth.php';
+require '../interface/templates/navigation.php';
 
-// Проверка роли модератора
-if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'moderator') {
-    header('Location: login.php');
-    exit;
-}
+ensureRole('moderator');
 
 // Добавление категории
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_category'])) {
@@ -39,6 +36,15 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <body class="container mt-5">
 <?php renderNavigation($_SESSION['user_role']); ?>
 <h1>Moderator Dashboard</h1>
+
+<!-- Ссылки на управление категориями и атрибутами -->
+<div class="mb-4">
+    <a href="manage_categories.php" class="btn btn-primary">Manage Categories</a>
+    <a href="moderate_categories.php" class="btn btn-primary">Moderate Category Proposals</a>
+    <a href="manage_attributes.php" class="btn btn-secondary">Manage Attributes</a>
+</div>
+
+<!-- Управление категориями прямо из дашборда -->
 <h2>Manage Categories</h2>
 <table class="table table-striped">
     <thead>
@@ -58,6 +64,8 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <?php endforeach; ?>
     </tbody>
 </table>
+
+<!-- Форма добавления категории -->
 <h3>Add New Category</h3>
 <form method="POST" action="moderator_dashboard.php">
     <div class="mb-3">
@@ -77,3 +85,4 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </form>
 </body>
 </html>
+

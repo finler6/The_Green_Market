@@ -1,7 +1,7 @@
 <?php
 session_start();
 require '../backend/db.php';
-require 'navigation.php';
+require '../interface/templates/navigation.php';
 
 // Проверка роли фермера
 if ($_SESSION['user_role'] !== 'farmer') {
@@ -13,11 +13,11 @@ $farmer_id = $_SESSION['user_id'];
 
 // Добавление товара
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
-    $name = trim($_POST['name']);
+    $name = htmlspecialchars(trim($_POST['name']));
     $category_id = (int)$_POST['category_id'];
     $price = (float)$_POST['price'];
     $quantity = (int)$_POST['quantity'];
-    $description = trim($_POST['description']);
+    $description = htmlspecialchars(trim($_POST['description']));
 
     if (!empty($name) && $category_id && $price > 0 && $quantity >= 0) {
         $query = "INSERT INTO Products (name, farmer_id, category_id, price, quantity, description)
@@ -25,14 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
         $stmt = $pdo->prepare($query);
         $stmt->execute([
             'name' => $name,
-            'farmer_id' => $farmer_id,
+            'farmer_id' => $_SESSION['user_id'],
             'category_id' => $category_id,
             'price' => $price,
             'quantity' => $quantity,
             'description' => $description
         ]);
-        header('Location: farmer_dashboard.php');
-        exit;
     }
 }
 

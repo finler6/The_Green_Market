@@ -1,16 +1,18 @@
 <?php
 session_start();
 require '../backend/db.php';
-require 'navigation.php';
+require '../interface/templates/navigation.php';
+require '../backend/auth.php';
 
-// Проверка роли клиента
-if ($_SESSION['user_role'] !== 'customer') {
-    header('Location: login.php');
-    exit;
+ensureRole('customer');
+
+//generation CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 // Получение данных корзины
-$cart = $_SESSION['cart'] ?? [];
+$cart = !empty($_SESSION['cart']) ? $_SESSION['cart'] : [];
 $products = [];
 
 if (!empty($cart)) {
@@ -23,6 +25,9 @@ if (!empty($cart)) {
 
 // Обработка оформления заказа
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
+    if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die('Invalid CSRF token.');
+    }
     $customer_id = $_SESSION['user_id'];
     $order_items = [];
 
@@ -105,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     <p>Your cart is empty.</p>
 <?php else: ?>
     <form method="POST" action="cart.php">
+        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
         <table class="table table-striped">
             <thead>
             <tr>

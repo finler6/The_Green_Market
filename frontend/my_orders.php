@@ -1,7 +1,7 @@
 <?php
 session_start();
 require '../backend/db.php';
-require 'navigation.php';
+require '../interface/templates/navigation.php';
 
 // Проверка роли клиента
 if ($_SESSION['user_role'] !== 'customer') {
@@ -10,7 +10,8 @@ if ($_SESSION['user_role'] !== 'customer') {
 }
 
 // Получение заказов клиента
-$query = "SELECT Orders.id, Products.name, Orders.quantity, Orders.total_price, Orders.status, Orders.order_date
+$query = "SELECT Orders.id AS order_id, Products.id AS product_id, Products.name AS product_name,
+                 Orders.quantity, Orders.total_price, Orders.status, Orders.order_date
           FROM Orders
           JOIN Products ON Orders.product_id = Products.id
           WHERE Orders.customer_id = :customer_id
@@ -40,17 +41,25 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <th>Total Price</th>
         <th>Status</th>
         <th>Order Date</th>
+        <th>Action</th>
     </tr>
     </thead>
     <tbody>
     <?php foreach ($orders as $order): ?>
         <tr>
-            <td><?= htmlspecialchars($order['id']) ?></td>
-            <td><?= htmlspecialchars($order['name']) ?></td>
+            <td><?= htmlspecialchars($order['order_id']) ?></td>
+            <td><?= htmlspecialchars($order['product_name']) ?></td>
             <td><?= htmlspecialchars($order['quantity']) ?></td>
             <td><?= htmlspecialchars($order['total_price']) ?></td>
             <td><?= htmlspecialchars($order['status']) ?></td>
             <td><?= htmlspecialchars($order['order_date']) ?></td>
+            <td>
+                <?php if ($order['status'] === 'completed'): ?>
+                    <a href="add_review.php?product_id=<?= $order['product_id'] ?>" class="btn btn-primary btn-sm">Leave a Review</a>
+                <?php else: ?>
+                    <span class="text-muted">No actions available</span>
+                <?php endif; ?>
+            </td>
         </tr>
     <?php endforeach; ?>
     </tbody>

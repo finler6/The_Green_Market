@@ -2,19 +2,31 @@
 session_start(); // Начало сессии для сохранения данных о пользователе
 
 require '../backend/db.php';
+require '../backend/validation.php';
+
+//generation CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email']);
+    if(empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die('Invalid CSRF token.');
+    }
+    $email = validateEmail($_POST['email']);
     $password = trim($_POST['password']);
+
+    if (!$email || empty($password)) {
+        $error = "Invalid email or password.";
+    }
 
     // Проверка на пустые поля
     if (empty($email) || empty($password)) {
         $error = "Both fields are required.";
     } else {
-        // Поиск пользователя в базе по email
         $query = "SELECT id, name, email, password, role FROM Users WHERE email = :email";
         $stmt = $pdo->prepare($query);
-        $stmt->execute(['email' => $email]);
+        $stmt->execute(['email' => htmlspecialchars($email)]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         // Если пользователь найден и пароль верный
@@ -26,19 +38,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Перенаправление в зависимости от роли
             switch ($_SESSION['user_role']) {
                 case 'admin':
-                    header('Location: admin_dashboard.php');
+                    header('Location: index.php');
                     break;
                 case 'moderator':
-                    header('Location: moderator_dashboard.php');
+                    header('Location: index.php');
                     break;
                 case 'farmer':
-                    header('Location: farmer_dashboard.php');
+                    header('Location: index.php');
                     break;
                 case 'customer':
-                    header('Location: customer_dashboard.php');
+                    header('Location: index.php');
                     break;
                 default:
-                    header('Location: login.php');
+                    header('Location: index.php');
             }
             exit;
         } else {
@@ -65,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
 <?php endif; ?>
 <form method="POST" action="login.php">
+    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
     <div class="mb-3">
         <label for="email" class="form-label">Email</label>
         <input type="email" class="form-control" id="email" name="email" required>

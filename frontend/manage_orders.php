@@ -1,12 +1,14 @@
 <?php
 session_start();
 require '../backend/db.php';
-require 'navigation.php';
+require '../backend/auth.php';
+require '../interface/templates/navigation.php';
+require '../backend/validation.php';
 
-// Проверка роли фермера
-if ($_SESSION['user_role'] !== 'farmer') {
-    header('Location: login.php');
-    exit;
+ensureRole('farmer');
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 // Получение заказов, связанных с товарами фермера
@@ -21,17 +23,17 @@ $stmt = $pdo->prepare($query);
 $stmt->execute(['farmer_id' => $_SESSION['user_id']]);
 $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Обработка изменения статуса заказа
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_id'], $_POST['action'])) {
-    $order_id = (int)$_POST['order_id'];
-    $action = $_POST['action'];
+    if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die('Invalid CSRF token.');
+    }
+    $order_id = validateInt($_POST['order_id'],1);
+    $action = validateString(htmlspecialchars($_POST['action']), 50);
 
-    if (in_array($action, ['completed', 'cancelled'])) {
+    if (in_array($action, ['completed', 'cancelled']) && $order_id && $action) {
         $query = "UPDATE Orders SET status = :status WHERE id = :order_id";
         $stmt = $pdo->prepare($query);
         $stmt->execute(['status' => $action, 'order_id' => $order_id]);
-        header('Location: manage_orders.php');
-        exit;
     }
 }
 ?>
@@ -73,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_id'], $_POST['a
             <td>
                 <?php if ($order['status'] === 'pending'): ?>
                     <form method="POST" action="manage_orders.php" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                         <input type="hidden" name="order_id" value="<?= $order['order_id'] ?>">
                         <button type="submit" name="action" value="completed" class="btn btn-success btn-sm">Complete</button>
                         <button type="submit" name="action" value="cancelled" class="btn btn-danger btn-sm">Cancel</button>

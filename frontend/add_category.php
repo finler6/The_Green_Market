@@ -1,22 +1,25 @@
 <?php
 require '../backend/db.php';
+require '../backend/validation.php';
 
-// Обработка данных формы
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = trim($_POST['name']);
+//genarate CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_category'])) {
+    if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die('Invalid CSRF token.');
+    }
+    $name = validateString(htmlspecialchars(trim($_POST['name'])));
     $parent_id = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
 
     if (!empty($name)) {
-        // Вставляем новую категорию
         $query = "INSERT INTO Categories (name, parent_id) VALUES (:name, :parent_id)";
         $stmt = $pdo->prepare($query);
         $stmt->execute(['name' => $name, 'parent_id' => $parent_id]);
-
-        // Перенаправление обратно на страницу категорий
-        header('Location: index.php');
-        exit;
     } else {
-        $error = "Category name is required!";
+        $error = "Category name is required.";
     }
 }
 
@@ -39,6 +42,7 @@ $parent_categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
 <?php endif; ?>
 <form method="POST" action="add_category.php">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
     <div class="mb-3">
         <label for="name" class="form-label">Category Name</label>
         <input type="text" class="form-control" id="name" name="name" required>

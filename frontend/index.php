@@ -2,25 +2,34 @@
 session_start();
 require '../backend/db.php';
 
-// Получение списка категорий для фильтрации
+$title = 'Browse Products';
+
+// Получение категорий для фильтрации
 $query = "SELECT id, name FROM Categories";
 $categories = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
 
 // Фильтрация товаров
 $category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : null;
-$where_clause = $category_id ? "WHERE category_id = :category_id" : "";
+$where_clause = $category_id ? "WHERE Products.category_id = :category_id" : "";
 
 // Сортировка товаров
-$order_by = isset($_GET['order_by']) && in_array($_GET['order_by'], ['price_asc', 'price_desc']) ? $_GET['order_by'] : null;
+$order_by = isset($_GET['order_by']) ? $_GET['order_by'] : null;
 $order_clause = "";
 if ($order_by === 'price_asc') {
     $order_clause = "ORDER BY Products.price ASC";
 } elseif ($order_by === 'price_desc') {
     $order_clause = "ORDER BY Products.price DESC";
+} elseif ($order_by === 'quantity') {
+    $order_clause = "ORDER BY Products.quantity DESC";
+} elseif ($order_by === 'popularity') {
+    $order_clause = "
+        ORDER BY (
+            SELECT COUNT(*) FROM Orders WHERE Orders.product_id = Products.id
+        ) DESC";
 }
 
 // Формирование запроса
-$query = "SELECT Products.id, Products.name, Categories.name AS category, Products.price, Products.quantity, Products.description
+$query = "SELECT Products.id, Products.name, Categories.name AS category, Products.price, Products.quantity 
           FROM Products
           JOIN Categories ON Products.category_id = Categories.id
           $where_clause
@@ -32,75 +41,65 @@ if ($category_id) {
     $stmt->execute();
 }
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Генерация контента
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Categories</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-</head>
-<body class="container mt-5">
-<?php if (!empty($_SESSION['user_name'])): ?>
-    <div class="text-end mb-3">
-        <span>Welcome, <?= htmlspecialchars($_SESSION['user_name']) ?>!</span>
-        <?php if ($_SESSION['user_role'] === 'admin'): ?>
-            <a href="admin_dashboard.php" class="btn btn-secondary">Admin Dashboard</a>
-        <?php elseif ($_SESSION['user_role'] === 'moderator'): ?>
-            <a href="moderator_dashboard.php" class="btn btn-secondary">Moderator Dashboard</a>
-        <?php elseif ($_SESSION['user_role'] === 'farmer'): ?>
-            <a href="farmer_dashboard.php" class="btn btn-secondary">Farmer Dashboard</a>
-        <?php elseif ($_SESSION['user_role'] === 'customer'): ?>
-            <a href="customer_dashboard.php" class="btn btn-secondary">Customer Dashboard</a>
-        <?php endif; ?>
-        <a href="logout.php" class="btn btn-danger ms-3">Logout</a>
-    </div>
-<?php else: ?>
-    <div class="text-end mb-3">
-        <a href="login.php" class="btn btn-primary">Login</a>
-    </div>
-<?php endif; ?>
-<h1 class="mb-4 text-center">Products</h1>
+    <h1 class="text-center mb-4">Browse Products</h1>
 
-<!-- Фильтрация по категориям -->
-<div class="mb-3">
-    <form method="GET" action="index.php" class="d-inline">
-    <label for="category_id" class="form-label">Filter by Category:</label>
-        <select name="category_id" id="category_id" class="form-select d-inline w-auto">
-            <option value="">All Categories</option>
-            <?php foreach ($categories as $category): ?>
-                <option value="<?= $category['id'] ?>" <?= $category_id == $category['id'] ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($category['name']) ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-        <button type="submit" class="btn btn-primary">Filter</button>
-    </form>
-</div>
+    <!-- Форма фильтрации и сортировки -->
+    <div class="row g-3 align-items-center mb-4">
+        <form method="GET" action="index.php" class="row">
+            <div class="col-md-5">
+                <label for="category_id" class="form-label">Filter by Category:</label>
+                <select name="category_id" id="category_id" class="form-select">
+                    <option value="">All Categories</option>
+                    <?php foreach ($categories as $category): ?>
+                        <option value="<?= $category['id'] ?>" <?= $category_id == $category['id'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($category['name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label for="order_by" class="form-label">Sort by:</label>
+                <select name="order_by" id="order_by" class="form-select">
+                    <option value="">Default</option>
+                    <option value="price_asc" <?= $order_by === 'price_asc' ? 'selected' : '' ?>>Price: Low to High</option>
+                    <option value="price_desc" <?= $order_by === 'price_desc' ? 'selected' : '' ?>>Price: High to Low</option>
+                    <option value="quantity" <?= $order_by === 'quantity' ? 'selected' : '' ?>>Quantity</option>
+                    <option value="popularity" <?= $order_by === 'popularity' ? 'selected' : '' ?>>Popularity</option>
+                </select>
+            </div>
+            <div class="col-md-2 align-self-end">
+                <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+            </div>
+        </form>
+    </div>
 
-<!-- Список товаров -->
-<table class="table table-striped mt-4">
-    <thead>
-    <tr>
-        <th>Name</th>
-        <th>Category</th>
-        <th>Price</th>
-        <th>Available</th>
-        <th>Description</th>
-    </tr>
-    </thead>
-    <tbody>
-    <?php foreach ($products as $product): ?>
-        <tr>
-            <td><?= htmlspecialchars($product['name']) ?></td>
-            <td><?= htmlspecialchars($product['category']) ?></td>
-            <td><?= htmlspecialchars($product['price']) ?></td>
-            <td><?= htmlspecialchars($product['quantity']) ?></td>
-            <td><?= htmlspecialchars($product['description']) ?></td>
-        </tr>
-    <?php endforeach; ?>
-    </tbody>
-</table>
-</body>
-</html>
+    <!-- Карточки товаров -->
+    <div class="products-container">
+        <?php foreach ($products as $product): ?>
+            <div class="product-card">
+                <h3><?= htmlspecialchars($product['name']) ?></h3>
+                <p>Category: <?= htmlspecialchars($product['category']) ?></p>
+                <p>$<?= number_format($product['price'], 2) ?>/kg</p>
+                <?php if ($product['quantity'] > 0): ?>
+                    <p>Available: <?= htmlspecialchars($product['quantity']) ?> units</p>
+                    <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'customer'): ?>
+                        <form method="POST" action="add_to_cart.php">
+                            <input type="hidden" name="product_id" value="<?= $product['id'] ?>">
+                            <button type="submit" class="btn btn-success btn-add-to-cart">Add to Cart</button>
+                        </form>
+                    <?php else: ?>
+                        <button class="btn btn-secondary btn-add-to-cart" disabled>Add to Cart</button>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <p class="text-danger">Out of stock</p>
+                <?php endif; ?>
+            </div>
+        <?php endforeach; ?>
+    </div>
+<?php
+$content = ob_get_clean();
+require '../interface/templates/layout.php';
