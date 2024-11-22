@@ -37,6 +37,9 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                     <li><a href="<?= BASE_URL ?>/frontend/<?= htmlspecialchars($role) ?>_dashboard.php">Dashboard</a></li>
                     <li><a href="<?= BASE_URL ?>/frontend/cart.php">Cart</a></li>
                     <li><a href="<?= BASE_URL ?>/frontend/my_orders.php">My Orders</a></li>
+                    <?php if ($_SESSION['user_role'] === 'admin'): ?>
+                        <li><a href="<?= BASE_URL ?>/frontend/admin_dashboard.php" class="btn-admin">Admin Panel</a></li>
+                    <?php endif; ?>
                     <li><a href="<?= BASE_URL ?>/frontend/logout.php" class="btn-logout">Logout</a></li>
                 <?php else: ?>
                     <li><a type="button" class="btn-primary" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a></li>

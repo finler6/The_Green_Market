@@ -52,7 +52,7 @@ function renderNavigation($role = null) {
                 <ul class="navbar-nav">
                     <?php if (isset($_SESSION['user_id'])): ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="<?= BASE_URL ?>/frontend/interests.php">My Interests</a>
+                            <a class="nav-link" href="<?= BASE_URL ?>/frontend/old/interests.php">My Interests</a>
                         </li>
                         <li class="nav-item">
                             <span class="navbar-text text-light me-2">

@@ -593,6 +593,12 @@ body {
     background-color: #5a6268; /* Темнее при наведении */
 }
 
+/* Административная панель */
+.chart-container {
+    width: 400px; /* Ширина диаграммы */
+    height: 400px; /* Высота диаграммы */
+    margin: 0 auto; /* Центрируем элемент */
+}
 
 @media (max-width: 1024px) {
     .products-container {

@@ -112,42 +112,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// updateInterest - функция для добавления или удаления события из интересов
-function updateInterest(eventId, action) {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content'); // CSRF токен
+// UpdateInterestButton
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.toggle-interest').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const button = e.currentTarget;
+            const eventId = button.dataset.eventId;
+            const action = button.dataset.action;
 
-    fetch('events.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            event_id: eventId,
-            action: action,
-            csrf_token: csrfToken
-        })
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const button = document.querySelector(`button[onclick="updateInterest(${eventId}, '${action}')"]`);
-                if (action === 'add') {
-                    button.classList.remove('btn-primary');
-                    button.classList.add('btn-danger');
-                    button.innerText = 'Remove from Interests';
-                    button.setAttribute('onclick', `updateInterest(${eventId}, 'remove')`);
-                } else {
-                    button.classList.remove('btn-danger');
-                    button.classList.add('btn-primary');
-                    button.innerText = 'Add to Interests';
-                    button.setAttribute('onclick', `updateInterest(${eventId}, 'add')`);
-                }
-            } else {
-                alert(data.error || 'An error occurred.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Something went wrong. Please try again.');
-        });
-}
+            // Отключаем кнопку временно, чтобы исключить повторное нажатие
+            button.disabled = true;
+
+            fetch('handle_interests.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ event_id: eventId, action: action }),
+            })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    if (data.status === 'success') {
+                        // Обновляем текст кнопки
+                        if (action === 'add') {
+                            button.textContent = 'Remove from Interests';
+                            button.classList.remove('btn-primary');
+                            button.classList.add('btn-danger');
+                            button.dataset.action = 'remove';
+                        } else {
+                            button.textContent = 'Add to Interests';
+                            button.classList.remove('btn-danger');
+                            button.classList.add('btn-primary');
+                            button.dataset.action = 'add';
+                        }
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch((error) => console.error('Error:', error))
+                .finally(() => {
+                    // Включаем кнопку после завершения
+                    button.disabled = false;
+                });
+        }, { once: true }); // Добавляем параметр once, чтобы слушатель добавлялся только один раз
+    });
+});
+
+

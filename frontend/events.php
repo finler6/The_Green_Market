@@ -66,38 +66,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_event']) && $i
     }
 }
 
-// Удаление события из интересов
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_from_interests'])) {
+// Добавление события в интересы
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_interests']) && $logged_in) {
     $event_id = (int)$_POST['event_id'];
-    $user_id = $_SESSION['user_id'];
 
-    // Удаляем событие из интересов
-    $query = "DELETE FROM UserInterests WHERE user_id = :user_id AND event_id = :event_id";
+    $query = "INSERT IGNORE INTO UserInterests (user_id, event_id) VALUES (:user_id, :event_id)";
     $stmt = $pdo->prepare($query);
-    $stmt->execute(['user_id' => $user_id, 'event_id' => $event_id]);
-
-    $success = "Event removed from your interests.";
+    $stmt->execute(['user_id' => $_SESSION['user_id'], 'event_id' => $event_id]);
 }
 
-// Добавление события в интересы
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_interests'])) {
+// Удаление события из интересов
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_from_interests']) && $logged_in) {
     $event_id = (int)$_POST['event_id'];
-    $user_id = $_SESSION['user_id'];
 
-    // Проверяем, есть ли уже событие в интересах
-    $checkQuery = "SELECT id FROM UserInterests WHERE user_id = :user_id AND event_id = :event_id";
-    $checkStmt = $pdo->prepare($checkQuery);
-    $checkStmt->execute(['user_id' => $user_id, 'event_id' => $event_id]);
-
-    if ($checkStmt->rowCount() === 0) {
-        // Добавляем событие в интересы
-        $query = "INSERT INTO UserInterests (user_id, event_id) VALUES (:user_id, :event_id)";
-        $stmt = $pdo->prepare($query);
-        $stmt->execute(['user_id' => $user_id, 'event_id' => $event_id]);
-        $success = "Event added to your interests!";
-    } else {
-        $error = "Event is already in your interests.";
-    }
+    $query = "DELETE FROM UserInterests WHERE user_id = :user_id AND event_id = :event_id";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute(['user_id' => $_SESSION['user_id'], 'event_id' => $event_id]);
 }
 
 // Обновление события
@@ -189,20 +173,23 @@ ob_start();
 <?php if ($is_farmer_or_higher): ?>
     <!-- Кнопка для добавления нового события -->
     <button type="button" class="btn btn-primary mt-4" data-bs-toggle="modal" data-bs-target="#addEventModal">
-        Propose New Event
+        Create New Event
     </button>
 <?php endif; ?>
-    <h1 class="text-center mb-4">Upcoming Events</h1>
-    <?php if ($logged_in): ?>
-        <div class="mb-4 d-flex justify-content-between">
+    <h1 class="text-center mb-4">Events</h1>
+<?php if ($logged_in): ?>
+    <div class="mb-4 d-flex justify-content-between">
+        <?php if ($is_farmer_or_higher): ?>
             <form method="GET" action="events.php" class="d-inline">
                 <button type="submit" name="filter" value="my_events" class="btn btn-outline-primary">My Events</button>
             </form>
-            <form method="GET" action="events.php" class="d-inline">
-                <button type="submit" name="filter" value="my_interests" class="btn btn-outline-secondary">My Interests</button>
-            </form>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
+        <form method="GET" action="events.php" class="d-inline">
+            <button type="submit" name="filter" value="my_interests" class="btn btn-outline-secondary">My Interests</button>
+        </form>
+    </div>
+<?php endif; ?>
+
 
     <!-- Форма фильтрации -->
     <form method="GET" action="events.php" class="mb-4">
@@ -251,15 +238,12 @@ ob_start();
                 </p>
                 <div class="mt-3">
                     <?php if ($logged_in): ?>
-                        <?php if (!$is_interested): ?>
-                            <form method="POST" action="events.php" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                                <input type="hidden" name="event_id" value="<?= htmlspecialchars($event['id']) ?>">
-                                <button type="submit" name="add_to_interests" class="btn btn-primary btn-sm">Add to Interests</button>
-                            </form>
-                        <?php else: ?>
-                            <button class="btn btn-secondary btn-sm" disabled>Already in Interests</button>
-                        <?php endif; ?>
+                        <button
+                                class="btn btn-<?= $is_interested ? 'danger' : 'primary' ?> btn-sm toggle-interest"
+                                data-event-id="<?= $event['id'] ?>"
+                                data-action="<?= $is_interested ? 'remove' : 'add' ?>">
+                            <?= $is_interested ? 'Remove from Interests' : 'Add to Interests' ?>
+                        </button>
                     <?php endif; ?>
                     <?php if ($is_farmer_or_higher && ($is_admin_or_moderator || $event['organizer_id'] == $_SESSION['user_id'])): ?>
                         <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editEventModal"

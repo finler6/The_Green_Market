@@ -2,7 +2,7 @@
 session_start();
 require '../backend/db.php';
 
-if ($_SESSION['user_role'] !== 'customer') {
+if ($_SESSION['user_role'] == 'unauthorized') {
     header('Location: login.php');
     exit;
 }
