@@ -79,27 +79,33 @@ ob_start();
 
     <!-- Карточки товаров -->
     <div class="products-container">
-        <?php foreach ($products as $product): ?>
-            <div class="product-card">
+    <?php foreach ($products as $product): ?>
+        <div class="product-card">
+            <!-- Ссылка на страницу продукта -->
+            <a href="product.php?id=<?= $product['id'] ?>" class="product-link">
                 <h3><?= htmlspecialchars($product['name']) ?></h3>
                 <p>Category: <?= htmlspecialchars($product['category']) ?></p>
                 <p>$<?= number_format($product['price'], 2) ?>/kg</p>
                 <?php if ($product['quantity'] > 0): ?>
                     <p>Available: <?= htmlspecialchars($product['quantity']) ?> units</p>
-                    <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'customer'): ?>
-                        <form method="POST" action="add_to_cart.php">
-                            <input type="hidden" name="product_id" value="<?= $product['id'] ?>">
-                            <button type="submit" class="btn btn-success btn-add-to-cart">Add to Cart</button>
-                        </form>
-                    <?php else: ?>
-                        <button class="btn btn-secondary btn-add-to-cart" disabled>Add to Cart</button>
-                    <?php endif; ?>
                 <?php else: ?>
                     <p class="text-danger">Out of stock</p>
                 <?php endif; ?>
-            </div>
-        <?php endforeach; ?>
-    </div>
+            </a>
+            
+            <!-- Кнопка Add to Cart -->
+            <?php if ($product['quantity'] > 0 && isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'customer'): ?>
+                <form method="POST" action="add_to_cart.php">
+                    <input type="hidden" name="product_id" value="<?= $product['id'] ?>">
+                    <button type="submit" class="btn btn-success btn-add-to-cart">Add to Cart</button>
+                </form>
+            <?php else: ?>
+                <button class="btn btn-secondary btn-add-to-cart" disabled>Add to Cart</button>
+            <?php endif; ?>
+        </div>
+    <?php endforeach; ?>
+</div>
+
 <?php
 $content = ob_get_clean();
 require '../interface/templates/layout.php';
