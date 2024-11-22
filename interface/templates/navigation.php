@@ -45,7 +45,7 @@ function renderNavigation($role = null) {
                             <a class="nav-link" href="<?= BASE_URL ?>/frontend/manage_orders.php">Manage Orders</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="<?= BASE_URL ?>/frontend/manage_events.php">Manage Events</a>
+                            <a class="nav-link" href="<?= BASE_URL ?>/frontend/old/manage_events.php">Manage Events</a>
                         </li>
                     <?php endif; ?>
                 </ul>

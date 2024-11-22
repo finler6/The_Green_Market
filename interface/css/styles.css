@@ -198,6 +198,16 @@ body {
     box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
 }
 
+.product-card a {
+    text-decoration: none; /* Убираем подчеркивание */
+    color: inherit; /* Наследуем цвет от родителя */
+}
+
+.product-card a:hover {
+    text-decoration: none; /* Подчеркивание при наведении (опционально) */
+    color: inherit; /* Более насыщенный цвет при наведении */
+}
+
 .product-card h3 {
     font-size: 1.5rem;
     color: #333;
@@ -208,6 +218,16 @@ body {
     margin: 5px 0;
     color: #555;
     font-size: 1rem;
+}
+
+.product-card a {
+    text-decoration: none; /* Убираем подчеркивание */
+    color: inherit; /* Наследуем цвет от родителя */
+}
+
+.product-card a:hover {
+    text-decoration: none; /* Подчеркивание при наведении (опционально) */
+    color: inherit; /* Более насыщенный цвет при наведении */
 }
 
 .product-card .btn-add-to-cart {
@@ -228,6 +248,134 @@ body {
 .product-card .btn-add-to-cart:disabled {
     background-color: #ccc;
     cursor: not-allowed;
+}
+
+.product-title {
+    font-size: 2.5rem; /* Размер шрифта названия */
+    font-weight: bold;
+    margin-bottom: 20px; /* Отступ снизу */
+    color: #333; /* Цвет текста */
+}
+
+.product-details {
+    display: flex;
+    justify-content: space-between; /* Пространство между элементами */
+    align-items: flex-start; /* Выровнять по верхнему краю */
+    gap: 20px; /* Расстояние между блоками */
+}
+
+.product-info {
+    flex: 1; /* Растягивается, чтобы занять доступное пространство */
+    max-width: 60%; /* Максимальная ширина для текста */
+}
+
+.product-gallery {
+    flex: 1; /* Галерея занимает равное пространство */
+    max-width: 35%; /* Устанавливаем ширину галереи */
+    text-align: center; /* Центрируем элементы галереи */
+}
+
+.gallery-container {
+    position: relative;
+    width: 100%;
+    max-width: 500px; /* Максимальная ширина галереи */
+    height: 300px; /* Фиксированная высота галереи */
+    overflow: hidden; /* Скрываем лишние изображения */
+    text-align: center;
+}
+
+.gallery-images {
+    display: flex;
+    flex-wrap: nowrap; /* Изображения располагаются в одну линию */
+    transition: transform 0.5s ease-in-out; /* Плавное переключение */
+    height: 100%;
+    width: 100%; /* Начальная ширина (будет изменена JavaScript'ом) */
+}
+
+.gallery-images img {
+    flex-shrink: 0;
+    width: 100%; /* Каждое изображение занимает всю ширину видимого контейнера */
+    height: 100%; /* Масштабируем по высоте контейнера */
+    object-fit: contain; /* Сохраняем пропорции */
+    border-radius: 8px; /* Скругление углов */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.placeholder-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Плейсхолдер сохраняет пропорции */
+}
+
+
+.gallery-prev,
+.gallery-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    font-size: 2rem;
+    padding: 10px;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.gallery-prev {
+    left: 10px;
+}
+
+.gallery-next {
+    right: 10px;
+}
+
+
+.gallery-prev {
+    left: 10px;
+}
+
+.gallery-next {
+    right: 10px;
+}
+
+
+.product-rating {
+    margin-top: 20px;
+    font-size: 1.2rem;
+    color: #333;
+}
+
+.product-reviews {
+    margin-top: 30px;
+}
+
+.product-reviews h2 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.review {
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.review p {
+    margin: 5px 0;
+    color: #555;
+}
+
+.review strong {
+    color: #333;
+}
+
+.review hr {
+    border: none;
+    border-top: 1px solid #ddd;
 }
 
 .modal-content {
@@ -277,6 +425,8 @@ body {
     }
 }
 
+/* Страница заказов */
+
 .orders-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -309,6 +459,8 @@ body {
     font-size: 1rem;
 }
 
+/* Страница продукта */
+
 .modal-content {
     border-radius: 10px;
     padding: 20px;
@@ -324,6 +476,8 @@ body {
     border-top: 1px solid #ddd;
     padding-top: 10px;
 }
+
+/* Рейтинг */
 
 .rating-stars {
     display: flex;
@@ -348,6 +502,97 @@ body {
     transform: scale(1.2);
     color: #ffc107; /* Цвет звезды при наведении */
 }
+
+.product-rating .stars {
+    color: #ffc107; /* Желтый цвет для звезд */
+    font-size: 1.2rem; /* Размер звезд */
+    margin-left: 10px; /* Отступ от текста */
+    vertical-align: middle;
+}
+
+.product-rating .stars .fa-star,
+.product-rating .stars .fa-star-half-alt,
+.product-rating .stars .fa-star-o {
+    margin-right: 2px; /* Расстояние между звездами */
+}
+
+/* Страница событий */
+
+.events-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Адаптивная сетка */
+    gap: 20px; /* Расстояние между карточками */
+    margin-top: 20px; /* Отступ сверху */
+}
+
+.event-card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: left;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.event-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+}
+
+.event-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.event-card p {
+    margin: 5px 0;
+    font-size: 1rem;
+    color: #555;
+}
+
+.event-card .btn {
+    margin-top: 15px;
+}
+
+/* Кнопки фильтра на странице событий */
+.filter-buttons {
+    display: flex;
+    justify-content: flex-start; /* Выравнивание кнопок в начале строки */
+    gap: 10px; /* Расстояние между кнопками */
+}
+
+.filter-buttons .btn {
+    padding: 6px 12px; /* Компактный размер кнопок */
+    font-size: 0.9rem; /* Уменьшенный шрифт */
+    border-radius: 5px; /* Легкое закругление */
+}
+
+.filter-buttons .btn:hover {
+    transform: scale(1.05); /* Легкое увеличение при наведении */
+}
+
+.filter-buttons .btn-primary {
+    background-color: #007bff; /* Синий цвет для основного действия */
+    color: #fff;
+    border: none;
+}
+
+.filter-buttons .btn-primary:hover {
+    background-color: #0056b3; /* Темнее при наведении */
+}
+
+.filter-buttons .btn-secondary {
+    background-color: #6c757d; /* Серый цвет для сброса */
+    color: #fff;
+    border: none;
+}
+
+.filter-buttons .btn-secondary:hover {
+    background-color: #5a6268; /* Темнее при наведении */
+}
+
 
 @media (max-width: 1024px) {
     .products-container {
