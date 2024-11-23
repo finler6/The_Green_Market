@@ -38,6 +38,9 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                     <li><a href="<?= BASE_URL ?>/frontend/<?= htmlspecialchars($role) ?>_dashboard.php">Dashboard</a></li>
                     <li><a href="<?= BASE_URL ?>/frontend/cart.php">Cart</a></li>
                     <li><a href="<?= BASE_URL ?>/frontend/my_orders.php">My Orders</a></li>
+                    <?php if (($_SESSION['user_role'] === 'admin') || ($_SESSION['user_role'] === 'moderator')): ?>
+                        <li><a href="<?= BASE_URL ?>/frontend/manage_categories.php" class="btn-admin">Manage Categories</a></li>
+                    <?php endif; ?>
                     <?php if ($_SESSION['user_role'] === 'admin'): ?>
                         <li><a href="<?= BASE_URL ?>/frontend/admin_dashboard.php" class="btn-admin">Admin Panel</a></li>
                     <?php endif; ?>
@@ -47,6 +50,12 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                     <li><a type="button" class="btn-primary" data-bs-toggle="modal" data-bs-target="#registerModal">Register</a></li>
                 <?php endif; ?>
             </ul>
+            <button class="hamburger-menu" id="hamburgerMenu">
+                &#9776;
+            </button>
+            <div class="dropdown-menu" id="dropdownMenu">
+                <!-- Здесь будут отображаться скрытые ссылки -->
+            </div>
         </div>
     </nav>
 </header>
@@ -151,6 +160,42 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
         <p>&copy; <?= date('Y') ?> Green Market. All rights reserved.</p>
     </div>
 </footer>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const navbarLinks = document.querySelector('.navbar-links');
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+
+        function manageNavbar() {
+            const maxVisibleItems = 5; // Максимальное количество кнопок
+            const links = Array.from(navbarLinks.children);
+            const hiddenLinks = links.slice(maxVisibleItems);
+
+            dropdownMenu.innerHTML = ''; // Очищаем старые скрытые ссылки
+            hiddenLinks.forEach(link => {
+                dropdownMenu.appendChild(link); // Перемещаем их в выпадающее меню
+            });
+
+            // Показать или скрыть гамбургер
+            if (hiddenLinks.length > 0) {
+                hamburgerMenu.style.display = 'block';
+            } else {
+                hamburgerMenu.style.display = 'none';
+            }
+        }
+
+        // Показать/скрыть меню при нажатии
+        hamburgerMenu.addEventListener('click', () => {
+            dropdownMenu.classList.toggle('show'); // Добавляем класс для анимации
+        });
+
+        // Вызываем управление при загрузке страницы и изменении размера окна
+        manageNavbar();
+        window.addEventListener('resize', manageNavbar);
+    });
+</script>
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> <!-- Bootstrap -->
 <script src="<?= BASE_URL ?>/interface/js/script.js"></script> <!-- Ваши кастомные скрипты -->

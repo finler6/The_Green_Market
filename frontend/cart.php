@@ -1,150 +1,80 @@
 <?php
 session_start();
 require '../backend/db.php';
-require '../interface/templates/navigation.php';
-require '../backend/auth.php';
 
-ensureRole('customer');
+$title = 'Your Shopping Cart';
 
-//generation CSRF token
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
+$cart = $_SESSION['cart'] ?? []; // Получаем корзину из сессии
 
-// Получение данных корзины
-$cart = !empty($_SESSION['cart']) ? $_SESSION['cart'] : [];
-$products = [];
+$total = 0;
 
-if (!empty($cart)) {
-    $placeholders = implode(',', array_fill(0, count($cart), '?'));
-    $query = "SELECT id, name, price, quantity FROM Products WHERE id IN ($placeholders)";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute(array_keys($cart));
-    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-// Обработка оформления заказа
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
-    if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        die('Invalid CSRF token.');
-    }
-    $customer_id = $_SESSION['user_id'];
-    $order_items = [];
-
-    // Проверяем наличие товаров и создаём заказ
-    foreach ($products as $product) {
-        $product_id = $product['id'];
-        $quantity = $cart[$product_id];
-
-        // Проверка доступного количества
-        if ($product['quantity'] < $quantity) {
-            $error = "Not enough stock for product: " . htmlspecialchars($product['name']);
-            break;
-        }
-
-        $total_price = $product['price'] * $quantity;
-        $order_items[] = [
-            'product_id' => $product_id,
-            'quantity' => $quantity,
-            'total_price' => $total_price,
-        ];
-    }
-
-    if (empty($error)) {
-        try {
-            // Создаем заказ
-            $pdo->beginTransaction();
-
-            foreach ($order_items as $item) {
-                $query = "INSERT INTO Orders (customer_id, product_id, quantity, total_price, status) 
-                          VALUES (:customer_id, :product_id, :quantity, :total_price, 'pending')";
-                $stmt = $pdo->prepare($query);
-                $stmt->execute([
-                    'customer_id' => $customer_id,
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                    'total_price' => $item['total_price'],
-                ]);
-
-                // Обновляем количество товара
-                $query = "UPDATE Products SET quantity = quantity - :quantity WHERE id = :product_id";
-                $stmt = $pdo->prepare($query);
-                $stmt->execute([
-                    'quantity' => $item['quantity'],
-                    'product_id' => $item['product_id'],
-                ]);
-            }
-
-            $pdo->commit();
-
-            // Очищаем корзину
-            unset($_SESSION['cart']);
-            $success = "Your order has been placed successfully!";
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            $error = "Failed to place order: " . $e->getMessage();
-        }
-    }
-}
+// Генерация контента страницы
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cart</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-</head>
-<body class="container mt-5">
-<?php renderNavigation($_SESSION['user_role']); ?>
-<h1>Your Cart</h1>
 
-<?php if (!empty($error)): ?>
-    <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
-<?php endif; ?>
-<?php if (!empty($success)): ?>
-    <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
-<?php endif; ?>
+<h1 class="text-center mb-4">Your Shopping Cart</h1>
 
-<?php if (empty($cart)): ?>
-    <p>Your cart is empty.</p>
-<?php else: ?>
-    <form method="POST" action="cart.php">
-        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-        <table class="table table-striped">
-            <thead>
+<?php if (!empty($cart)): ?>
+    <table class="table table-bordered text-center">
+        <thead>
             <tr>
-                <th>Name</th>
+                <th>Product</th>
                 <th>Price</th>
                 <th>Quantity</th>
                 <th>Total</th>
+                <th>Actions</th>
             </tr>
-            </thead>
-            <tbody>
-            <?php $total = 0; ?>
-            <?php foreach ($products as $product): ?>
-                <?php
-                $quantity = $cart[$product['id']];
-                $subtotal = $product['price'] * $quantity;
-                $total += $subtotal;
-                ?>
+        </thead>
+        <tbody>
+            <?php foreach ($cart as $product_id => $item): ?>
+                <?php $item_total = $item['price'] * $item['quantity']; ?>
                 <tr>
-                    <td><?= htmlspecialchars($product['name']) ?></td>
-                    <td><?= htmlspecialchars($product['price']) ?></td>
-                    <td><?= htmlspecialchars($quantity) ?></td>
-                    <td><?= htmlspecialchars($subtotal) ?></td>
+                <td>
+                    <a href="product.php?id=<?= htmlspecialchars($product_id) ?>" class="product-link">
+                        <?= htmlspecialchars($item['name']) ?>
+                    </a>
+                </td>
+                    <td>$<?= number_format($item['price'], 2) ?></td>
+                    <td>
+                        <form method="POST" action="update_cart.php" style="display: inline;">
+                            <input 
+                                type="number" 
+                                name="quantity" 
+                                value="<?= htmlspecialchars($_SESSION['cart'][$product_id]['quantity']) ?>" 
+                                min="1" 
+                                max="<?= htmlspecialchars($product['quantity']) ?>" 
+                                style="width: 60px; text-align: center;" 
+                                onchange="this.form.submit()">
+                            <input type="hidden" name="product_id" value="<?= htmlspecialchars($product_id) ?>">
+                        </form>
+                    </td>
+                    <td>$<?= number_format($item_total, 2) ?></td>
+                    <td>
+                        <form method="POST" action="update_cart.php" style="display:inline;">
+                            <input type="hidden" name="product_id" value="<?= $product_id ?>">
+                            <button type="submit" name="action" value="increase" class="btn btn-sm btn-add">+</button>
+                            <button type="submit" name="action" value="decrease" class="btn btn-sm btn-remove">-</button>
+                        </form>
+                        <form method="POST" action="update_cart.php" style="display:inline;">
+                            <input type="hidden" name="product_id" value="<?= $product_id ?>">
+                            <button type="submit" name="action" value="remove" class="btn btn-sm btn-delete">Remove</button>
+                        </form>
+                    </td>
                 </tr>
+                <?php $total += $item_total; ?>
             <?php endforeach; ?>
-            </tbody>
-            <tfoot>
-            <tr>
-                <th colspan="3">Total</th>
-                <th><?= htmlspecialchars($total) ?></th>
-            </tr>
-            </tfoot>
-        </table>
-        <button type="submit" name="place_order" class="btn btn-success">Place Order</button>
-    </form>
+        </tbody>
+    </table>
+
+    <div class="text-end">
+        <h4>Total: $<?= number_format($total, 2) ?></h4>
+        <a href="checkout.php" class="btn btn-success">Checkout</a>
+    </div>
+<?php else: ?>
+    <p>Your cart is empty. <a href="index.php">Continue shopping</a>.</p>
 <?php endif; ?>
-</body>
-</html>
+
+<?php
+$content = ob_get_clean();
+require '../interface/templates/layout.php';
+?>

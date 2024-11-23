@@ -600,9 +600,219 @@ body {
     margin: 0 auto; /* Центрируем элемент */
 }
 
+/* Manage Categories */
+.btn-warning {
+    background-color: #ffc107;
+    color: #fff;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.category-tree {
+    list-style: none;
+    padding-left: 20px;
+    margin: 0;
+}
+
+.category-tree li {
+    margin: 10px 0;
+    padding-left: 20px;
+    border-left: 2px dashed #ccc;
+    position: relative;
+}
+
+.category-tree li::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -10px;
+    width: 10px;
+    height: 2px;
+    background-color: #ccc;
+}
+
+.category-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.category-item:hover {
+    transform: scale(1.02);
+    background-color: #e9ecef;
+}
+
+.category-name {
+    font-weight: bold;
+    color: #333;
+}
+
+.category-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.category-actions .btn {
+    font-size: 0.9rem;
+}
+
+.category-actions .btn:hover {
+    transform: scale(1.1);
+    transition: all 0.2s ease;
+}
+
+.category-item:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Кнопка для добавления категории */
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+}
+
+.modal-footer {
+    border-top: 1px solid #ddd;
+}
+
+.modal-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+/* Стили для кнопок предложений */
+.btn-success {
+    background-color: #28a745;
+    color: white;
+    border: none;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.table {
+    margin-top: 20px;
+    border-collapse: collapse;
+    background-color: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Стили для навигации */
+.hamburger-menu {
+    display: none; /* Показывается только при необходимости */
+    font-size: 1.8rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    padding: 10px;
+    z-index: 10;
+    position: relative; /* Важный момент: родитель для выпадающего меню */
+}
+
+.hamburger-menu:focus {
+    outline: none; /* Убираем стандартное обводку */
+}
+
+.hamburger-menu:hover {
+    transform: scale(1.1); /* Увеличиваем размер при наведении */
+    color: #ddd; /* Меняем цвет при наведении */
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute; /* Меню расположено относительно ближайшего родителя с position: relative */
+    top: 50px; /* Расстояние от верхней границы кнопки гамбургера */
+    right: 10px; /* Расстояние от правой границы */
+    background-color: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+    z-index: 1000;
+    width: 200px;
+    opacity: 0; /* По умолчанию меню скрыто */
+    transform: translateY(-10px); /* Смещено вверх для анимации */
+    transition: opacity 0.3s ease, transform 0.3s ease; /* Плавная анимация */
+}
+
+.dropdown-menu.show {
+    display: block;
+    opacity: 1; /* Делает меню видимым */
+    transform: translateY(0); /* Возвращает меню на место */
+}
+
+.dropdown-menu li {
+    list-style: none;
+}
+
+.dropdown-menu a {
+    display: block;
+    padding: 10px 15px;
+    color: #333;
+    text-decoration: none;
+    border-bottom: 1px solid #ddd;
+}
+
+.dropdown-menu a:hover {
+    background-color: #f8f9fa;
+}
+
+.navbar-links-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative; /* Для правильного позиционирования выпадающего меню */
+}
+
+
+
 @media (max-width: 1024px) {
     .products-container {
         grid-template-columns: repeat(3, 1fr); /* 3 колонки на среднем экране */
+    }
+}
+
+@media (max-width: 768px) {
+    .hamburger-menu {
+        display: block;
+    }
+
+    .navbar-links {
+        display: none;
     }
 }
 
