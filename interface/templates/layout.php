@@ -35,14 +35,15 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                 <li><a href="index.php">Home</a></li>
                 <li><a href="events.php">Events</a></li>
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <li><a href="<?= BASE_URL ?>/frontend/<?= htmlspecialchars($role) ?>_dashboard.php">Dashboard</a></li>
                     <li><a href="<?= BASE_URL ?>/frontend/cart.php">Cart (<?= isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'], 'quantity')) : 0 ?>)</a></li>
                     <li><a href="<?= BASE_URL ?>/frontend/my_orders.php">My Orders</a></li>
                     <?php if (($_SESSION['user_role'] === 'admin') || ($_SESSION['user_role'] === 'moderator')): ?>
                         <li><a href="<?= BASE_URL ?>/frontend/manage_categories.php" class="btn-admin">Manage Categories</a></li>
                     <?php endif; ?>
                     <?php if ($_SESSION['user_role'] === 'admin'): ?>
-                        <li><a href="<?= BASE_URL ?>/frontend/admin_dashboard.php" class="btn-admin">Admin Panel</a></li>
+                        <li><a href="<?= BASE_URL ?>/frontend/<?= htmlspecialchars($role) ?>_dashboard.php">Admin Panel</a></li>
+                    <?php else : ?>
+                        <li><a href="<?= BASE_URL ?>/frontend/<?= htmlspecialchars($role) ?>_dashboard.php">Dashboard</a></li>
                     <?php endif; ?>
                     <li><a href="<?= BASE_URL ?>/frontend/logout.php" class="btn-logout">Logout</a></li>
                 <?php else: ?>
