@@ -95,16 +95,46 @@ ob_start();
                 </a>
 
                 <!-- Кнопка Add to Cart -->
-                <?php if ($product['quantity'] > 0 && isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'customer'): ?>
-                    <form method="POST" action="add_to_cart.php">
-                        <input type="hidden" name="product_id" value="<?= $product['id'] ?>">
-                        <button type="submit" class="btn btn-success btn-add-to-cart">Add to Cart</button>
-                    </form>
+                <?php if (($product['quantity'] > 0 && isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'customer')
+                || ($product['quantity'] > 0 && isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'moderator')
+                || ($product['quantity'] > 0 && isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin')): ?>
+                    <button type="button" class="btn btn-success btn-add-to-cart" data-bs-toggle="modal"
+                            data-bs-target="#addToCartModal"
+                            data-product-id="<?= $product['id'] ?>"
+                            data-product-name="<?= htmlspecialchars($product['name']) ?>"
+                            data-product-max="<?= $product['quantity'] ?>">Add to Cart
+                    </button>
                 <?php else: ?>
                     <button class="btn btn-secondary btn-add-to-cart" disabled>Add to Cart</button>
                 <?php endif; ?>
             </div>
         <?php endforeach; ?>
+    </div>
+
+    <!-- Модальное окно -->
+    <div class="modal fade" id="addToCartModal" tabindex="-1" aria-labelledby="addToCartModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addToCartModalLabel">Add to Cart</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="POST" action="add_to_cart.php">
+                        <input type="hidden" id="modal-product-id" name="product_id" value="">
+                        <div class="mb-3">
+                            <label for="modal-product-name" class="form-label">Product</label>
+                            <input type="text" id="modal-product-name" class="form-control" value="" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modal-quantity" class="form-label">Quantity</label>
+                            <input type="number" id="modal-quantity" name="quantity" class="form-control" min="1" value="1">
+                        </div>
+                        <button type="submit" class="btn btn-success">Add to Cart</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
 <?php

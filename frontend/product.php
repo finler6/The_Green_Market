@@ -143,8 +143,9 @@ ob_start();
         <?php else: ?>
             <p class="text-danger">Out of stock</p>
         <?php endif; ?>
-
-        <button class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#editProductModal">Edit Product</button>
+        <?php if (!($_SESSION['user_role'] === 'unauthorized') && !($_SESSION['user_role'] === 'customer')): ?>
+            <button class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#editProductModal">Edit Product</button>
+        <?php endif; ?>
     </div>
 
     <div class="product-gallery">

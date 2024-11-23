@@ -36,7 +36,7 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                 <li><a href="events.php">Events</a></li>
                 <?php if (isset($_SESSION['user_id'])): ?>
                     <li><a href="<?= BASE_URL ?>/frontend/<?= htmlspecialchars($role) ?>_dashboard.php">Dashboard</a></li>
-                    <li><a href="<?= BASE_URL ?>/frontend/cart.php">Cart</a></li>
+                    <li><a href="<?= BASE_URL ?>/frontend/cart.php">Cart (<?= isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'], 'quantity')) : 0 ?>)</a></li>
                     <li><a href="<?= BASE_URL ?>/frontend/my_orders.php">My Orders</a></li>
                     <?php if (($_SESSION['user_role'] === 'admin') || ($_SESSION['user_role'] === 'moderator')): ?>
                         <li><a href="<?= BASE_URL ?>/frontend/manage_categories.php" class="btn-admin">Manage Categories</a></li>

@@ -227,6 +227,7 @@ ob_start();
         <?php foreach ($events as $event):
             $is_interested = $logged_in && in_array($event['id'], $interested_events);?>
             <div class="event-card">
+                <a href="event.php?id=<?= htmlspecialchars($event['id']) ?>" class="event-card-link"></a>
                 <h3><?= htmlspecialchars($event['name']) ?></h3>
                 <p><strong>Location:</strong> <?= htmlspecialchars($event['location']) ?></p>
                 <p><strong>Date:</strong> <?= htmlspecialchars(date('F j, Y', strtotime($event['date']))) ?></p>

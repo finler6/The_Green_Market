@@ -124,6 +124,36 @@ body {
     transition: background-color 0.3s ease;
 }
 
+.btn-add {
+    background-color: #007bff; /* Синий цвет */
+    color: #fff;
+    border: none;
+}
+
+.btn-add:hover {
+    background-color: #0056b3; /* Темно-синий при наведении */
+}
+
+.btn-remove {
+    background-color: #0056b3; /* Желтый цвет */
+    color: #fff;
+    border: none;
+}
+
+.btn-remove:hover {
+    background-color: #0056b3; /* Темно-желтый при наведении */
+}
+
+.btn-delete {
+    background-color: #0056b3; /* Красный цвет */
+    color: #fff;
+    border: none;
+}
+
+.btn-delete:hover {
+    background-color: #0056b3; /* Темно-красный при наведении */
+}
+
 .btn-primary {
     background-color: #1c3ac1;
     color: #fff;
@@ -228,6 +258,16 @@ body {
 .product-card a:hover {
     text-decoration: none; /* Подчеркивание при наведении (опционально) */
     color: inherit; /* Более насыщенный цвет при наведении */
+}
+
+.product-link {
+    color: inherit; /* Использовать цвет текста родителя */
+    text-decoration: none; /* Убирает подчеркивание */
+}
+
+.product-link:hover {
+    color: inherit;
+    text-decoration: none; /* Опционально: оставить без подчеркивания */
 }
 
 .product-card .btn-add-to-cart {
@@ -478,6 +518,18 @@ body {
 }
 
 /* Рейтинг */
+.product-rating .stars {
+    color: #ffc107; /* Желтый цвет для звезд */
+    font-size: 1.2rem; /* Размер звезд */
+    margin-left: 10px; /* Отступ от текста */
+    vertical-align: middle;
+}
+
+.product-rating .stars .fa-star,
+.product-rating .stars .fa-star-half-alt,
+.product-rating .stars .fa-star-o {
+    margin-right: 2px; /* Расстояние между звездами */
+}
 
 .rating-stars {
     display: flex;
@@ -525,6 +577,16 @@ body {
     margin-top: 20px; /* Отступ сверху */
 }
 
+.event-description {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-top: 20px;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
 .event-card {
     background-color: #fff;
     border: 1px solid #ddd;
@@ -538,6 +600,26 @@ body {
 .event-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+    position: relative; /* Для взаимодействия с вложенными элементами */
+}
+
+.event-card-link {
+    text-decoration: none; /* Убираем стандартное оформление ссылок */
+    color: inherit; /* Сохраняем цвет текста */
+}
+
+.event-card-link:hover .event-card {
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2); /* Сохраняем эффект hover */
+}
+
+.event-card {
+    position: relative; /* Устанавливаем относительное позиционирование для управления элементами внутри */
+}
+
+.event-card:hover {
+    transform: scale(1.05); /* Легкое увеличение при наведении */
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2); /* Более сильная тень */
+    z-index: 10; /* Поднимаем карточку над остальными */
 }
 
 .event-card h3 {
@@ -554,6 +636,18 @@ body {
 
 .event-card .btn {
     margin-top: 15px;
+    z-index: 2; /* Оставляем кнопки интерактивными поверх карточки */
+    position: relative;
+}
+
+.event-card-link {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1; /* Устанавливаем ссылку ниже кнопок */
 }
 
 /* Кнопки фильтра на странице событий */
@@ -798,7 +892,57 @@ body {
     position: relative; /* Для правильного позиционирования выпадающего меню */
 }
 
+.hero-slider {
+    position: relative;
+    width: 100%;
+    height: 400px; /* Задаем высоту секции */
+    overflow: hidden;
+    margin-bottom: 30px;
+}
 
+.slider-container {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+    height: 100%;
+}
+
+.slider-item {
+    flex: 0 0 100%; /* Каждое изображение занимает всю ширину контейнера */
+    height: 100%;
+}
+
+.slider-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Обрезаем изображение с сохранением пропорций */
+}
+
+.slider-prev,
+.slider-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    font-size: 2rem;
+    padding: 10px;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.slider-prev {
+    left: 10px;
+}
+
+.slider-next {
+    right: 10px;
+}
+
+.slider-prev:hover,
+.slider-next:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+}
 
 @media (max-width: 1024px) {
     .products-container {

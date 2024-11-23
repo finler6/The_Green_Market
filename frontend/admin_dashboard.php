@@ -35,16 +35,28 @@ $users_by_month_query = $pdo->query("
 ");
 $users_by_month = $users_by_month_query->fetchAll(PDO::FETCH_ASSOC);
 
-// Данные для популярных продуктов
+// Данные для популярных продуктов по количеству заказов
 $popular_products_query = $pdo->query("
-    SELECT Products.name, COUNT(Orders.id) AS total_orders
-    FROM Orders
-    JOIN Products ON Orders.product_id = Products.id
-    GROUP BY Products.id
+    SELECT Products.name, COUNT(OrderItems.id) AS total_orders
+    FROM OrderItems
+    JOIN Products ON OrderItems.product_id = Products.id
+    GROUP BY Products.id 
     ORDER BY total_orders DESC
     LIMIT 5
 ");
 $popular_products = $popular_products_query->fetchAll(PDO::FETCH_ASSOC);
+
+// Данные для популярных продуктов по количеству товаров
+$popular_products_query_in_quantity = $pdo->query("
+    SELECT Products.name, SUM(OrderItems.quantity) AS total_quantity
+    FROM OrderItems
+    JOIN Products ON OrderItems.product_id = Products.id
+    GROUP BY Products.id 
+    ORDER BY total_quantity DESC
+    LIMIT 5
+");
+$popular_products_in_quantity = $popular_products_query_in_quantity->fetchAll(PDO::FETCH_ASSOC);
+
 
 // Обновление роли пользователя
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_role'])) {
@@ -314,7 +326,7 @@ ob_start();
         // Данные для графиков
         const monthlyOrders = <?= json_encode($monthly_orders) ?>;
         const usersByMonth = <?= json_encode($users_by_month) ?>;
-        const popularProducts = <?= json_encode($popular_products) ?>;
+        const popularProducts = <?= json_encode($popular_products_in_quantity) ?>;
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         // График Monthly Orders
@@ -374,7 +386,7 @@ ob_start();
                 labels: popularProducts.map(item => item.name),
                 datasets: [{
                     label: 'Orders',
-                    data: popularProducts.map(item => item.total_orders),
+                    data: popularProducts.map(item => item.total_quantity),
                     backgroundColor: [
                         'rgba(255, 99, 132, 0.6)',
                         'rgba(54, 162, 235, 0.6)',
