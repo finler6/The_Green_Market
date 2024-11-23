@@ -50,12 +50,14 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                     <li><a type="button" class="btn-primary" data-bs-toggle="modal" data-bs-target="#registerModal">Register</a></li>
                 <?php endif; ?>
             </ul>
+            <?php
+            /*
             <button class="hamburger-menu" id="hamburgerMenu">
                 &#9776;
             </button>
             <div class="dropdown-menu" id="dropdownMenu">
                 <!-- Здесь будут отображаться скрытые ссылки -->
-            </div>
+            </div>*/?>
         </div>
     </nav>
 </header>
@@ -161,7 +163,8 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
     </div>
 </footer>
 
-<script>
+<?php
+/*<script>
     document.addEventListener('DOMContentLoaded', () => {
         const navbarLinks = document.querySelector('.navbar-links');
         const hamburgerMenu = document.getElementById('hamburgerMenu');
@@ -194,8 +197,8 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
         manageNavbar();
         window.addEventListener('resize', manageNavbar);
     });
-</script>
-
+</script>*/
+?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> <!-- Bootstrap -->
 <script src="<?= BASE_URL ?>/interface/js/script.js"></script> <!-- Ваши кастомные скрипты -->
