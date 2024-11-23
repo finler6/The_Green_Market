@@ -97,3 +97,63 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nextButton) nextButton.style.display = 'none';
     }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    const addToCartButtons = document.querySelectorAll('.btn-add-to-cart');
+    const modalProductName = document.getElementById('modal-product-name');
+    const modalProductId = document.getElementById('modal-product-id');
+    const modalQuantity = document.getElementById('modal-quantity');
+
+    addToCartButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const productId = button.getAttribute('data-product-id');
+            const productName = button.getAttribute('data-product-name');
+            const productMax = button.getAttribute('data-product-max');
+
+            modalProductId.value = productId;
+            modalProductName.value = productName;
+            modalQuantity.setAttribute('max', productMax);
+            modalQuantity.value = 1;
+        });
+    });
+});
+
+// updateInterest - функция для добавления или удаления события из интересов
+function updateInterest(eventId, action) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content'); // CSRF токен
+
+    fetch('events.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            event_id: eventId,
+            action: action,
+            csrf_token: csrfToken
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const button = document.querySelector(`button[onclick="updateInterest(${eventId}, '${action}')"]`);
+                if (action === 'add') {
+                    button.classList.remove('btn-primary');
+                    button.classList.add('btn-danger');
+                    button.innerText = 'Remove from Interests';
+                    button.setAttribute('onclick', `updateInterest(${eventId}, 'remove')`);
+                } else {
+                    button.classList.remove('btn-danger');
+                    button.classList.add('btn-primary');
+                    button.innerText = 'Add to Interests';
+                    button.setAttribute('onclick', `updateInterest(${eventId}, 'add')`);
+                }
+            } else {
+                alert(data.error || 'An error occurred.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Something went wrong. Please try again.');
+        });
+}
