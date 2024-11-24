@@ -27,6 +27,7 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
 
 <body>
 <!-- Навигация -->
+<!-- Навигация -->
 <header class="main-header">
     <nav class="navbar">
         <div class="container navbar-container">
@@ -35,7 +36,6 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                 <li><a href="index.php">Home</a></li>
                 <li><a href="events.php">Events</a></li>
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <li><a href="<?= BASE_URL ?>/frontend/cart.php">Cart (<?= isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'], 'quantity')) : 0 ?>)</a></li>
                     <li><a href="<?= BASE_URL ?>/frontend/my_orders.php">My Orders</a></li>
                     <?php if (($_SESSION['user_role'] === 'admin') || ($_SESSION['user_role'] === 'moderator')): ?>
                         <li><a href="<?= BASE_URL ?>/frontend/manage_categories.php" class="btn-admin">Manage Categories</a></li>
@@ -45,20 +45,27 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                     <?php else : ?>
                         <li><a href="<?= BASE_URL ?>/frontend/<?= htmlspecialchars($role) ?>_dashboard.php">Dashboard</a></li>
                     <?php endif; ?>
-                    <li><a href="<?= BASE_URL ?>/frontend/logout.php" class="btn-logout">Logout</a></li>
+                    <!-- Кнопка профиля -->
+                    <li class="navbar-profile">
+                        <a href="<?= BASE_URL ?>/frontend/profile.php">
+                            <img src="../icons/profileIcon.png" alt="Profile" class="profile-icon">
+                        </a>
+                    </li>
+                    <li class="navbar-cart">
+                        <a href="<?= BASE_URL ?>/frontend/cart.php" class="cart-link">
+                            <img src="../icons/cartIcon.png" alt="Cart" class="cart-icon">
+                            <span class="cart-count"><?= isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'], 'quantity')) : 0 ?></span>
+                        </a>
+                    </li>
+                    <!-- Кнопка Logout -->
+                    <li class="navbar-logout">
+                        <a href="<?= BASE_URL ?>/frontend/logout.php" class="btn-primary">Logout</a>
+                    </li>
                 <?php else: ?>
                     <li><a type="button" class="btn-primary" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a></li>
                     <li><a type="button" class="btn-primary" data-bs-toggle="modal" data-bs-target="#registerModal">Register</a></li>
                 <?php endif; ?>
             </ul>
-            <?php
-            /*
-            <button class="hamburger-menu" id="hamburgerMenu">
-                &#9776;
-            </button>
-            <div class="dropdown-menu" id="dropdownMenu">
-                <!-- Здесь будут отображаться скрытые ссылки -->
-            </div>*/?>
         </div>
     </nav>
 </header>

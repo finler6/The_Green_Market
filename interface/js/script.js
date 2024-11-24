@@ -1,6 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const alerts = document.querySelectorAll('.alert');
+    initAlerts();
+    initReviewModal();
+    initRatingStars();
+    initGallery();
+    initToggleInterest();
+    initAddToCart();
+    initUpdateProduct();
+    initDeleteProduct();
+});
 
+
+
+
+// Функция для управления уведомлениями
+function initAlerts() {
+    const alerts = document.querySelectorAll('.alert');
     if (alerts.length > 0) {
         setTimeout(() => {
             alerts.forEach(alert => {
@@ -10,57 +24,58 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }, 5000);
     }
-});
+}
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Код для управления звёздочками рейтинга
+function initReviewModal() {
+    document.querySelectorAll('.leave-review-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            const productId = this.getAttribute('data-product-id');
+            const productName = this.getAttribute('data-product-name');
+            document.getElementById('reviewModalLabel').textContent = `Leave a Review for ${productName}`;
+            document.getElementById('modalProductId').value = productId;
+            document.getElementById('rating').value = '';
+            document.getElementById('comment').value = '';
+            const ratingStars = document.querySelectorAll('#ratingStars .fa-star');
+            ratingStars.forEach(star => {
+                star.classList.remove('fa-solid', 'text-warning');
+                star.classList.add('fa-regular');
+            });
+        });
+    });
+}
+// Функция для работы со звёздочками рейтинга
+function initRatingStars() {
     const reviewModal = document.getElementById('reviewModal');
     if (reviewModal) {
         const reviewForm = reviewModal.querySelector('form');
         const ratingStars = document.querySelectorAll('.rating-stars .fa-star');
         const ratingInput = document.getElementById('rating');
 
-        // Управление звёздочками
         ratingStars.forEach((star, index) => {
-            star.addEventListener('mouseover', () => {
-                highlightStars(index + 1);
-            });
-
-            star.addEventListener('mouseout', () => {
-                resetStars();
-            });
-
-            star.addEventListener('click', () => {
-                setRating(index + 1);
-            });
+            star.addEventListener('mouseover', () => highlightStars(index + 1));
+            star.addEventListener('mouseout', resetStars);
+            star.addEventListener('click', () => setRating(index + 1));
         });
 
         function highlightStars(rating) {
             ratingStars.forEach((star, idx) => {
-                if (idx < rating) {
-                    star.classList.add('fa-solid', 'text-warning');
-                    star.classList.remove('fa-regular');
-                } else {
-                    star.classList.add('fa-regular');
-                    star.classList.remove('fa-solid', 'text-warning');
-                }
+                star.classList.toggle('fa-solid', idx < rating);
+                star.classList.toggle('fa-regular', idx >= rating);
+                star.classList.toggle('text-warning', idx < rating);
             });
         }
 
         function resetStars() {
-            const currentRating = parseInt(ratingInput.value) || 0;
-            highlightStars(currentRating);
+            highlightStars(parseInt(ratingInput.value) || 0);
         }
 
         function setRating(rating) {
-            ratingInput.value = rating; // Устанавливаем значение в скрытое поле
+            ratingInput.value = rating;
             resetStars();
         }
 
-        // Сбрасываем звёздочки при загрузке
         resetStars();
 
-        // Проверка значения рейтинга перед отправкой формы
         reviewForm.addEventListener('submit', (event) => {
             if (!ratingInput.value) {
                 event.preventDefault();
@@ -68,7 +83,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+}
 
+
+function initGallery() {
     const galleryImagesContainer = document.querySelector('.gallery-images');
     const galleryImages = galleryImagesContainer ? galleryImagesContainer.querySelectorAll('img') : [];
     const prevButton = document.querySelector('.gallery-prev');
@@ -76,94 +94,68 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentImageIndex = 0;
 
     if (galleryImages.length > 1) {
-        // Устанавливаем ширину контейнера для всех изображений
         galleryImagesContainer.style.width = `${galleryImages.length * 100}%`;
-
-        // Каждое изображение занимает 100% ширины контейнера
         galleryImages.forEach(img => {
             img.style.width = `${100 / galleryImages.length}%`;
             img.style.flexShrink = "0";
         });
 
-        // Обновляем отображение активного изображения
         function updateGallery() {
-            const offset = -currentImageIndex * (100 / galleryImages.length); // Рассчитываем сдвиг
+            const offset = -currentImageIndex * (100 / galleryImages.length);
             galleryImagesContainer.style.transform = `translateX(${offset}%)`;
         }
 
-        // Переход к предыдущему изображению
         prevButton.addEventListener('click', () => {
             currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
             updateGallery();
         });
 
-        // Переход к следующему изображению
         nextButton.addEventListener('click', () => {
             currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
             updateGallery();
         });
 
-        // Инициализация галереи
         updateGallery();
     } else {
-        // Если только одно изображение, скрываем кнопки
         if (prevButton) prevButton.style.display = 'none';
         if (nextButton) nextButton.style.display = 'none';
     }
-});
+}
 
-// UpdateInterestButton
-document.addEventListener('DOMContentLoaded', () => {
+function initToggleInterest() {
     document.querySelectorAll('.toggle-interest').forEach(button => {
         button.addEventListener('click', (e) => {
             const button = e.currentTarget;
             const eventId = button.dataset.eventId;
             const action = button.dataset.action;
 
-            // Отключаем кнопку временно, чтобы исключить повторное нажатие
             button.disabled = true;
 
             fetch('handle_interests.php', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ event_id: eventId, action: action }),
             })
                 .then((response) => {
-                    if (!response.ok) {
-                        throw new Error(`Server error: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`Server error: ${response.status}`);
                     return response.json();
                 })
                 .then((data) => {
                     if (data.status === 'success') {
-                        // Обновляем текст кнопки
-                        if (action === 'add') {
-                            button.textContent = 'Remove from Interests';
-                            button.classList.remove('btn-primary');
-                            button.classList.add('btn-danger');
-                            button.dataset.action = 'remove';
-                        } else {
-                            button.textContent = 'Add to Interests';
-                            button.classList.remove('btn-danger');
-                            button.classList.add('btn-primary');
-                            button.dataset.action = 'add';
-                        }
+                        button.textContent = action === 'add' ? 'Remove from Interests' : 'Add to Interests';
+                        button.classList.toggle('btn-primary', action === 'remove');
+                        button.classList.toggle('btn-danger', action === 'add');
+                        button.dataset.action = action === 'add' ? 'remove' : 'add';
                     } else {
                         alert('Error: ' + data.message);
                     }
                 })
-                .catch((error) => console.error('Error:', error))
-                .finally(() => {
-                    // Включаем кнопку после завершения
-                    button.disabled = false;
-                });
-        }, { once: true }); // Добавляем параметр once, чтобы слушатель добавлялся только один раз
+                .catch(console.error)
+                .finally(() => (button.disabled = false));
+        });
     });
-});
-
-document.addEventListener('DOMContentLoaded', () => {
+}
+function initAddToCart() {
     const addToCartButtons = document.querySelectorAll('.btn-add-to-cart');
     const modalProductName = document.getElementById('modal-product-name');
     const modalProductId = document.getElementById('modal-product-id');
@@ -171,23 +163,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     addToCartButtons.forEach(button => {
         button.addEventListener('click', () => {
-            const productId = button.getAttribute('data-product-id');
-            const productName = button.getAttribute('data-product-name');
-            const productMax = button.getAttribute('data-product-max');
-
-            modalProductId.value = productId;
-            modalProductName.value = productName;
-            modalQuantity.setAttribute('max', productMax);
+            modalProductId.value = button.dataset.productId;
+            modalProductName.value = button.dataset.productName;
+            modalQuantity.setAttribute('max', button.dataset.productMax);
             modalQuantity.value = 1;
         });
     });
-});
-
-// updateInterest - функция для добавления или удаления события из интересов
+}
+// Универсальная функция для добавления или удаления события из интересов
 function updateInterest(eventId, action) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content'); // CSRF токен
+    const currentPage = window.location.pathname.endsWith('event.php') ? 'event.php' : 'events.php';
 
-    fetch('events.php', {
+    fetch(currentPage, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -201,6 +189,7 @@ function updateInterest(eventId, action) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                // Обновляем кнопку
                 const button = document.querySelector(`button[onclick="updateInterest(${eventId}, '${action}')"]`);
                 if (action === 'add') {
                     button.classList.remove('btn-primary');
@@ -221,4 +210,72 @@ function updateInterest(eventId, action) {
             console.error('Error:', error);
             alert('Something went wrong. Please try again.');
         });
+}
+
+
+
+function initUpdateProduct() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    document.querySelectorAll('.product-price, .product-quantity').forEach(input => {
+        // Сохраняем начальное значение
+        input.dataset.initialValue = input.value;
+
+        input.addEventListener('change', () => {
+            const newValue = input.value;
+            const initialValue = input.dataset.initialValue;
+
+            // Проверяем, изменилось ли значение
+            if (newValue !== initialValue) {
+                const field = input.classList.contains('product-price') ? 'price' : 'quantity';
+                updateProduct(input, field, csrfToken);
+
+                // Обновляем сохранённое значение после успешного обновления
+                input.dataset.initialValue = newValue;
+            }
+        });
+    });
+
+    function updateProduct(input, field, csrfToken) {
+        const productId = input.dataset.productId;
+        const newValue = field === 'price' ? parseFloat(input.value) : parseInt(input.value);
+
+        if (isNaN(newValue) || newValue <= 0) {
+            alert('Please enter a valid value.');
+            input.value = input.dataset.initialValue; // Возвращаем к предыдущему значению
+            return;
+        }
+
+        fetch('update_product.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_id: productId, [field]: newValue, csrf_token: csrfToken }),
+        })
+            .then(response => response.json())
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating the product.');
+            });
+    }
+}
+
+// Функция для удаления продукта
+function initDeleteProduct() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    document.querySelectorAll('.delete-product').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const productId = button.dataset.productId;
+
+            if (!confirm('Are you sure you want to delete this product?')) return;
+
+            fetch('delete_product.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: productId, csrf_token: csrfToken }),
+            })
+                .then(response => response.json())
+                .catch(console.error);
+        });
+    });
 }

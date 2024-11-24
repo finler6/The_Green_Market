@@ -11,10 +11,12 @@ if (!$product_id) {
 }
 
 // Запрос информации о продукте
-$query = "SELECT Products.id, Products.name, Products.category_id, Categories.name AS category, Products.price, Products.quantity, Products.description 
+$query = "SELECT Products.id, Products.name, Categories.name AS category, Products.price, Products.quantity, Products.description, Products.farmer_id, Users.name AS farmer_name
           FROM Products
           JOIN Categories ON Products.category_id = Categories.id
+          JOIN Users ON Products.farmer_id = Users.id
           WHERE Products.id = :product_id";
+
 $stmt = $pdo->prepare($query);
 $stmt->execute(['product_id' => $product_id]);
 $product = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -59,24 +61,11 @@ $reviews = $all_reviews_stmt->fetchAll(PDO::FETCH_ASSOC);
 // Обновление продукта (включая удаление/добавление изображений)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_product'])) {
     $csrf_token = $_POST['csrf_token'] ?? '';
-    $product_id = (int)$_POST['product_id'];
 
     if ($csrf_token !== ($_SESSION['csrf_token'] ?? '')) {
         die('Invalid CSRF token.');
     }
 
-    // Проверяем, является ли текущий пользователь владельцем продукта
-    $farmer_id = $_SESSION['user_id'] ?? null; // ID текущего фермера из сессии
-    $query = "SELECT farmer_id FROM Products WHERE id = :product_id";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute(['product_id' => $product_id]);
-    $owner_id = $stmt->fetchColumn();
-
-    if (!$farmer_id || $owner_id !== $farmer_id) {
-        die('You are not authorized to edit this product.');
-    }
-
-    // Данные из формы
     $name = htmlspecialchars(trim($_POST['name']));
     $price = (float)$_POST['price'];
     $quantity = (int)$_POST['quantity'];
@@ -85,17 +74,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_product'])) {
     $delete_images = $_POST['delete_images'] ?? [];
 
     if (!empty($name) && $price > 0 && $quantity >= 0) {
-        // Обновление основных данных продукта
-        $query = "UPDATE Products 
-                  SET name = :name, price = :price, quantity = :quantity, description = :description 
-                  WHERE id = :product_id";
+        // Обновление продукта
+        $query = "UPDATE Products SET name = :name, price = :price, quantity = :quantity, description = :description WHERE id = :product_id";
         $stmt = $pdo->prepare($query);
         $stmt->execute([
             'name' => $name,
             'price' => $price,
             'quantity' => $quantity,
             'description' => $description,
-            'product_id' => $product_id,
+            'product_id' => $product_id
         ]);
 
         // Удаление выбранных изображений
@@ -104,9 +91,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_product'])) {
             $delete_stmt = $pdo->prepare($delete_query);
             foreach ($delete_images as $image) {
                 $image_path = htmlspecialchars(trim($image));
-                if (file_exists($image_path)) {
-                    unlink($image_path); // Удаляем файл из файловой системы
-                }
                 $delete_stmt->execute([
                     'product_id' => $product_id,
                     'image_path' => $image_path,
@@ -126,27 +110,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_product'])) {
                         'image_path' => $image_path,
                     ]);
                 } else {
-                    // Логика обработки ошибок, если изображение не существует
-                    $error = "The image '$image_path' does not exist or is not a valid file.";
+                    $error = "The image path '$image_path' does not exist or is not a valid file.";
                 }
             }
         }
 
-        if (!empty($_POST['attributes'])) {
-            foreach ($_POST['attributes'] as $attributeId => $value) {
-                $query = "INSERT INTO ProductAttributeValues (product_id, attribute_id, value) 
-                  VALUES (:product_id, :attribute_id, :value)
-                  ON DUPLICATE KEY UPDATE value = :value";
-                $stmt = $pdo->prepare($query);
-                $stmt->execute([
-                    'product_id' => $product_id,
-                    'attribute_id' => $attributeId,
-                    'value' => htmlspecialchars(trim($value)),
-                ]);
-            }
-        }
-
-        // Перенаправление после успешного редактирования
         header("Location: product.php?id=$product_id");
         exit;
     } else {
@@ -169,36 +137,33 @@ ob_start();
         <p><strong>Price:</strong> $<?= number_format($product['price'], 2) ?>/kg</p>
         <p><strong>Available:</strong> <?= htmlspecialchars($product['quantity']) ?> units</p>
         <p><strong>Description:</strong> <?= nl2br(htmlspecialchars($product['description'])) ?></p>
+        <?php if (!empty($product['farmer_name'])): ?>
+            <p><strong>Seller:</strong> <a href="profile.php?id=<?= htmlspecialchars($product['farmer_id']) ?>"><?= htmlspecialchars($product['farmer_name']) ?></a></p>
+        <?php else: ?>
+            <p><strong>Seller:</strong> Unknown</p>
+        <?php endif; ?>
 
-        <h2>Attributes</h2>
-        <ul>
-            <?php
-            $query = "SELECT Attributes.name, ProductAttributeValues.value 
-                  FROM ProductAttributeValues
-                  JOIN Attributes ON ProductAttributeValues.attribute_id = Attributes.id
-                  WHERE ProductAttributeValues.product_id = :product_id";
-            $stmt = $pdo->prepare($query);
-            $stmt->execute(['product_id' => $product_id]);
-            $attributes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            foreach ($attributes as $attribute):
-                ?>
-                <li><strong><?= htmlspecialchars($attribute['name']) ?>:</strong> <?= htmlspecialchars($attribute['value']) ?></li>
-            <?php endforeach; ?>
-        </ul>
 
         <?php if ($product['quantity'] > 0): ?>
-            <!-- Кнопка для вызова модального окна -->
-            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addToCartModal">
-                Add to Cart
-            </button>
+            <!-- Проверяем, является ли пользователь фермером этого продукта -->
+            <?php if ($product['farmer_id'] !== $_SESSION['user_id']): ?>
+                <!-- Кнопка для вызова модального окна -->
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addToCartModal">
+                    Add to Cart
+                </button>
+            <?php else: ?>
+                <p class="text-warning">You cannot add your own product to the cart.</p>
+            <?php endif; ?>
         <?php else: ?>
             <p class="text-danger">Out of stock</p>
         <?php endif; ?>
-        <?php if (($role == 'admin') || ($role == 'moderator') || ($role == 'farmer')): ?>
+        
+        <!-- Проверка на роль администратора или модератора -->
+        <?php if ((($role == 'admin') || ($role == 'moderator')) && !($role == 'customer')): ?>
             <button class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#editProductModal">Edit Product</button>
         <?php endif; ?>
     </div>
+
 
     <div class="product-gallery">
         <div class="gallery-container">
@@ -250,8 +215,6 @@ ob_start();
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-
-                    <!-- Поля основного продукта -->
                     <div class="mb-3">
                         <label for="name" class="form-label">Product Name</label>
                         <input type="text" id="name" name="name" class="form-control" value="<?= htmlspecialchars($product['name']) ?>" required>
@@ -268,8 +231,6 @@ ob_start();
                         <label for="description" class="form-label">Description</label>
                         <textarea id="description" name="description" class="form-control" rows="4" required><?= htmlspecialchars($product['description']) ?></textarea>
                     </div>
-
-                    <!-- Поля текущих изображений -->
                     <div class="mb-3">
                         <label for="current_images" class="form-label">Current Images</label>
                         <div id="current_images">
@@ -284,8 +245,6 @@ ob_start();
                             <?php endforeach; ?>
                         </div>
                     </div>
-
-                    <!-- Поля для добавления новых изображений -->
                     <div class="mb-3">
                         <label for="new_images" class="form-label">Add New Images</label>
                         <div id="new_images">
@@ -293,45 +252,7 @@ ob_start();
                         </div>
                         <button type="button" class="btn btn-secondary btn-sm" id="add_new_image">Add More</button>
                     </div>
-
-                    <!-- Поля атрибутов категории -->
-                    <div class="mb-3">
-                        <h5>Category Attributes</h5>
-                        <?php
-                        // Получение атрибутов для категории
-                        $query = "SELECT id, name, type, is_required FROM Attributes WHERE category_id = :category_id";
-                        $stmt = $pdo->prepare($query);
-                        $stmt->execute(['category_id' => $product['category_id']]);
-                        $attributes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                        // Получение текущих значений атрибутов продукта
-                        $query = "SELECT attribute_id, value FROM ProductAttributeValues WHERE product_id = :product_id";
-                        $stmt = $pdo->prepare($query);
-                        $stmt->execute(['product_id' => $product['id']]);
-                        $currentAttributes = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-                        // Отображение полей для атрибутов
-                        foreach ($attributes as $attribute):
-                            $value = $currentAttributes[$attribute['id']] ?? '';
-                            $isRequired = $attribute['is_required'] ? 'required' : '';
-                            ?>
-                            <div class="mb-3">
-                                <label for="attribute_<?= $attribute['id'] ?>" class="form-label"><?= htmlspecialchars($attribute['name']) ?> <?= $attribute['is_required'] ? '*' : '' ?></label>
-                                <?php if ($attribute['type'] === 'text'): ?>
-                                    <input type="text" class="form-control" id="attribute_<?= $attribute['id'] ?>" name="attributes[<?= $attribute['id'] ?>]" value="<?= htmlspecialchars($value) ?>" <?= $isRequired ?>>
-                                <?php elseif ($attribute['type'] === 'number'): ?>
-                                    <input type="number" class="form-control" id="attribute_<?= $attribute['id'] ?>" name="attributes[<?= $attribute['id'] ?>]" value="<?= htmlspecialchars($value) ?>" <?= $isRequired ?>>
-                                <?php elseif ($attribute['type'] === 'boolean'): ?>
-                                    <input type="checkbox" class="form-check-input" id="attribute_<?= $attribute['id'] ?>" name="attributes[<?= $attribute['id'] ?>]" value="1" <?= $value === '1' ? 'checked' : '' ?>>
-                                <?php elseif ($attribute['type'] === 'date'): ?>
-                                    <input type="date" class="form-control" id="attribute_<?= $attribute['id'] ?>" name="attributes[<?= $attribute['id'] ?>]" value="<?= htmlspecialchars($value) ?>" <?= $isRequired ?>>
-                                <?php endif; ?>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
                 </div>
-
-                <!-- Скрипт для добавления новых полей изображений -->
                 <script>
                     document.getElementById('add_new_image').addEventListener('click', () => {
                         const newInput = document.createElement('input');
@@ -342,7 +263,6 @@ ob_start();
                         document.getElementById('new_images').appendChild(newInput);
                     });
                 </script>
-
                 <div class="modal-footer">
                     <button type="submit" name="edit_product" class="btn btn-success">Save Changes</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

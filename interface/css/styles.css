@@ -22,7 +22,7 @@ body {
 
 /* Навигация */
 .main-header {
-    background-color: #28a745; /* Зеленый цвет */
+    background-color: #238a3b; /* Зеленый цвет */
     padding: 15px 0;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
@@ -32,6 +32,29 @@ body {
     justify-content: space-between;
     align-items: center;
 }
+
+.navbar-profile {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.profile-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.profile-icon {
+    width: 30px; /* Уменьшено на 25% (из 40px) */
+    height: 30px;
+    transition: transform 0.3s ease;
+}
+
+.profile-icon:hover {
+    transform: scale(1.1);
+}
+
 
 .navbar-logo {
     color: #fff;
@@ -46,22 +69,27 @@ body {
     list-style: none;
     padding: 0;
     margin: 0;
+    align-items: center; /* Выровнять элементы по центру */
+    height: 100%; /* Устанавливаем высоту, чтобы соответствовать navbar */
 }
-
 .navbar-links li {
-    display: inline-block;
+    display: flex;
+    align-items: center; /* Выровнять текст по вертикали */
+    height: 100%; /* Высота кнопки равна высоте родителя */
 }
 
 .navbar-links a {
+    display: inline-flex; /* Добавляем flex для текста внутри ссылок */
+    align-items: center; /* Центрируем текст по вертикали */
     color: #fff;
     text-decoration: none;
     padding: 8px 15px;
     border-radius: 5px;
     transition: background-color 0.3s ease;
+    height: 100%; /* Высота ссылки равна высоте навигации */
 }
-
 .navbar-links a:hover {
-    background-color: #218838; /* Темно-зеленый при наведении */
+    background-color: #1e7031; /* Темно-зеленый при наведении */
 }
 
 /* Универсальный стиль для кнопок Login и Register */
@@ -69,11 +97,136 @@ body {
     background-color: #1c3ac1;
     color: #fff;
     border: none;
+    height: auto; /* Автоматическая высота для кнопок */
 }
 
 .navbar-links .btn-primary:hover {
     background-color: #0056b3; /* Цвет при наведении */
 }
+
+/* Стили для корзины */
+.navbar-cart {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.cart-link {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    text-decoration: none;
+}
+
+.cart-icon {
+    width: 30px; /* Уменьшено на 25% (из 40px) */
+    height: 30px;
+    transition: transform 0.3s ease;
+}
+
+.cart-link:hover .cart-icon {
+    transform: scale(1.1); /* Увеличиваем значок корзины при наведении */
+}
+
+/* Счетчик товаров */
+.cart-count {
+    position: absolute;
+    top: 0px; /* Смещаем вверх относительно корзины */
+    right: 5px; /* Смещаем вправо относительно корзины */
+    background-color: red;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 15px;
+    height: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease, background-color 0.3s ease; /* Плавный переход при наведении */
+}
+
+/* Hover-эффект для счетчика */
+.cart-link:hover .cart-count {
+    background-color: red; /* Меняем цвет фона на более темный */
+    transform: scale(1.2); /* Увеличиваем кружок при наведении */
+}
+
+/* Основные стили для гамбургера */
+.navbar-hamburger {
+    position: relative;
+}
+/* Базовый стиль меню */
+.dropdown-menu {
+    position: absolute;
+    top: 40px;
+    right: 0;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    list-style: none;
+    padding: 10px 0;
+    min-width: 150px;
+    z-index: 10;
+    visibility: hidden; /* Меню скрыто по умолчанию */
+    opacity: 0; /* Полностью прозрачное */
+    transition: visibility 0s, opacity 0.3s ease; /* Плавное появление */
+}
+
+/* Показываем меню */
+.dropdown-menu-show {
+    visibility: visible; /* Меню видно */
+    opacity: 1; /* Полностью непрозрачное */
+}
+
+.dropdown-menu li {
+    padding: 10px 20px;
+    text-align: left;
+}
+
+.dropdown-menu li a {
+    text-decoration: none;
+    color: #333;
+    transition: color 0.3s ease;
+}
+
+.dropdown-menu li a:hover {
+    color: #218838; /* Зеленый цвет при наведении */
+}
+
+/* Иконка гамбургера */
+.hamburger-icon {
+    font-size: 24px;
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.hamburger-icon:hover {
+    transform: scale(1.1); /* Увеличение при наведении */
+}
+
+.delete-product {
+    background-color: #dc3545; /* Красный цвет */
+    color: white; /* Белый текст */
+    border: none; /* Без границ */
+    padding: 10px 15px; /* Внутренние отступы */
+    border-radius: 5px; /* Скруглённые углы */
+    cursor: pointer; /* Курсор указателя */
+}
+
+.delete-product:hover {
+    background-color: #c82333; /* Более тёмный красный при наведении */
+}
+
+.delete-product:active {
+    background-color: #bd2130; /* Ещё более тёмный красный при нажатии */
+    transform: scale(0.95); /* Лёгкий эффект уменьшения */
+}
+
 
 .content-wrapper {
     background-color: #fff;
@@ -193,7 +346,7 @@ body {
 
 /* Подвал */
 .footer {
-    background-color: #28a745; /* Зеленый цвет */
+    background-color: #238a3b; /* Зеленый цвет */
     color: #ffffff;
     text-align: center;
     padding: 15px 0;
