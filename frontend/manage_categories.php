@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_category'])) {
 
     if (!empty($name)) {
         try {
-            $query = "INSERT INTO Categories (name, parent_id) VALUES (:name, :parent_id)";
+            $query = "INSERT INTO categories (name, parent_id) VALUES (:name, :parent_id)";
             $stmt = $pdo->prepare($query);
             $stmt->execute(['name' => $name, 'parent_id' => $parent_id]);
             $success = "Category added successfully.";
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accept_proposal'])) {
     $proposal_id = (int)$_POST['proposal_id'];
 
     // Получаем данные предложения
-    $query = "SELECT name, parent_id FROM CategoryProposals WHERE id = :id";
+    $query = "SELECT name, parent_id FROM categoryproposals WHERE id = :id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['id' => $proposal_id]);
     $proposal = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -56,12 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accept_proposal'])) {
     if ($proposal) {
         try {
             // Добавляем категорию в основную таблицу
-            $query = "INSERT INTO Categories (name, parent_id) VALUES (:name, :parent_id)";
+            $query = "INSERT INTO categories (name, parent_id) VALUES (:name, :parent_id)";
             $stmt = $pdo->prepare($query);
             $stmt->execute(['name' => $proposal['name'], 'parent_id' => $proposal['parent_id']]);
 
             // Удаляем предложение
-            $query = "DELETE FROM CategoryProposals WHERE id = :id";
+            $query = "DELETE FROM categoryproposals WHERE id = :id";
             $stmt = $pdo->prepare($query);
             $stmt->execute(['id' => $proposal_id]);
 
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reject_proposal'])) {
     $proposal_id = (int)$_POST['proposal_id'];
 
     // Удаляем предложение
-    $query = "DELETE FROM CategoryProposals WHERE id = :id";
+    $query = "DELETE FROM categoryproposals WHERE id = :id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['id' => $proposal_id]);
     $success = "Proposal rejected.";
@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_category'])) {
         updateCategoryHierarchy($pdo, $category_id, $new_parent_id);
 
         // Обновляем имя категории
-        $query = "UPDATE Categories SET name = :new_name WHERE id = :category_id";
+        $query = "UPDATE categories SET name = :new_name WHERE id = :category_id";
         $stmt = $pdo->prepare($query);
         $stmt->execute(['new_name' => $new_name, 'category_id' => $category_id]);
 
@@ -111,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_category'])) {
     $category_id = (int)$_POST['category_id'];
 
     // Проверка на потомков
-    $query = "SELECT COUNT(*) FROM Categories WHERE parent_id = :category_id";
+    $query = "SELECT COUNT(*) FROM categories WHERE parent_id = :category_id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['category_id' => $category_id]);
     $has_children = $stmt->fetchColumn() > 0;
@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_category'])) {
     if ($has_children) {
         $error = 'Cannot delete category with subcategories.';
     } else {
-        $query = "DELETE FROM Categories WHERE id = :category_id";
+        $query = "DELETE FROM categories WHERE id = :category_id";
         $stmt = $pdo->prepare($query);
         $stmt->execute(['category_id' => $category_id]);
         $success = 'Category deleted successfully.';
@@ -127,19 +127,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_category'])) {
 }
 
 // Получение всех категорий
-$query = "SELECT id, name, parent_id FROM Categories ORDER BY parent_id ASC, name ASC";
+$query = "SELECT id, name, parent_id FROM categories ORDER BY parent_id ASC, name ASC";
 $categories = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
 
 // Построение дерева категорий
 function updateCategoryHierarchy($pdo, $categoryId, $newParentId)
 {
     // Обновляем текущую категорию
-    $query = "UPDATE Categories SET parent_id = :new_parent_id WHERE id = :category_id";
+    $query = "UPDATE categories SET parent_id = :new_parent_id WHERE id = :category_id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['new_parent_id' => $newParentId, 'category_id' => $categoryId]);
 
     // Находим всех дочерние категории
-    $query = "SELECT id FROM Categories WHERE parent_id = :category_id";
+    $query = "SELECT id FROM categories WHERE parent_id = :category_id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['category_id' => $categoryId]);
     $children = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -168,9 +168,18 @@ function renderCategoryTree($tree)
                         data-parent="' . ($category['parent_id'] ?? '') . '">
                     Edit
                 </button>
+                <button class="btn btn-primary btn-sm manage-attributes-btn" 
+                        data-category-id="' . $category['id'] . '" 
+                        data-category-name="' . htmlspecialchars($category['name']) . '" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#manageAttributesModal">
+                    Manage Attributes
+                </button>
                 <form method="POST" action="manage_categories.php" class="d-inline">
                     <input type="hidden" name="category_id" value="' . $category['id'] . '">
-                    <button type="submit" name="delete_category" class="btn btn-danger btn-sm delete-category-btn">Delete</button>
+                    <button type="submit" name="delete_category" class="btn btn-danger btn-sm delete-category-btn">
+                    Delete
+                </button>
                 </form>
             </div>';
         $html .= '</div>';
@@ -183,12 +192,77 @@ function renderCategoryTree($tree)
     return $html;
 }
 
+// Атрибуты --------------------------
+// Добавление нового атрибута
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['type'], $_POST['category_id'])) {
+    $categoryId = (int)$_POST['category_id'];
+    $name = htmlspecialchars(trim($_POST['name']));
+    $type = htmlspecialchars(trim($_POST['type']));
+    $required = isset($_POST['required']) ? 1 : 0;
+
+    if ($categoryId > 0 && !empty($name) && !empty($type)) {
+        try {
+            $query = "INSERT INTO attributes (category_id, name, type, required) VALUES (:category_id, :name, :type, :required)";
+            $stmt = $pdo->prepare($query);
+            $stmt->execute(['category_id' => $categoryId, 'name' => $name, 'type' => $type, 'required' => $required]);
+
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    } else {
+        echo json_encode(['success' => false, 'error' => 'All fields are required.']);
+    }
+    exit;
+}
+
+// Удаление атрибута
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_attribute'])) {
+    $attributeId = (int)$_POST['attribute_id'];
+
+    $query = "DELETE FROM attributes WHERE id = :attribute_id";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute(['attribute_id' => $attributeId]);
+    $success = "Attribute deleted successfully.";
+}
+
+// Редактирование атрибута
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_attribute'])) {
+    $attributeId = (int)$_POST['attribute_id'];
+    $name = htmlspecialchars(trim($_POST['name']));
+    $type = htmlspecialchars(trim($_POST['type']));
+    $required = isset($_POST['required']) ? 1 : 0;
+
+    $query = "UPDATE attributes SET name = :name, type = :type, required = :required WHERE id = :attribute_id";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute(['name' => $name, 'type' => $type, 'required' => $required, 'attribute_id' => $attributeId]);
+    $success = "Attribute updated successfully.";
+}
+
+// Удаление атрибута
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_attribute'])) {
+    $attributeId = (int)$_POST['id'];
+
+    try {
+        $query = "DELETE FROM attributes WHERE id = :id";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute(['id' => $attributeId]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
 ob_start();
 ?>
     <h1 class="mb-4">Manage Categories</h1>
     <!-- Кнопка для добавления категории -->
     <button type="button" class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
         Add New Category
+    </button>
+    <!-- Кнопка для изменения атрибутов -->
+    <button type="button" class="btn btn-info mb-4" onclick="location.href='manage_all_attributes.php'">
+        Manage All Attributes
     </button>
     <!-- Кнопка для просмотра предложений -->
     <button type="button" class="btn btn-secondary mb-4" data-bs-toggle="modal" data-bs-target="#reviewProposalsModal">
@@ -229,6 +303,52 @@ ob_start();
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+    <!-- Модальное окно для управления атрибутами -->
+    <div class="modal fade" id="manageAttributesModal" tabindex="-1" aria-labelledby="manageAttributesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="manageAttributesModalLabel">Manage Attributes for <span id="categoryName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Список атрибутов -->
+                    <div id="attributesContainer">
+                        <ul class="list-group">
+                            <!-- Динамически заполняется через JavaScript -->
+                        </ul>
+                    </div>
+                    <hr>
+                    <!-- Форма для добавления атрибута -->
+                    <h6>Add New Attribute</h6>
+                    <form id="addAttributeForm">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <input type="text" name="name" class="form-control" placeholder="Attribute Name" required>
+                            </div>
+                            <div class="col-md-3">
+                                <select name="type" class="form-control" required>
+                                    <option value="text">Text</option>
+                                    <option value="number">Number</option>
+                                    <option value="boolean">Boolean</option>
+                                    <option value="date">Date</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="is_required" class="form-check-input" id="isRequiredCheckbox">
+                                    <label class="form-check-label" for="isRequiredCheckbox">Required</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-success">Save</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -275,7 +395,7 @@ ob_start();
                 <div class="modal-body">
                     <?php
                     // Получение предложений категорий
-                    $query = "SELECT id, name, parent_id FROM CategoryProposals ORDER BY id ASC";
+                    $query = "SELECT id, name, parent_id FROM categoryproposals ORDER BY id ASC";
                     $proposals = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
                     ?>
                     <?php if (empty($proposals)): ?>
@@ -321,7 +441,6 @@ ob_start();
         </div>
     </div>
 
-
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const editButtons = document.querySelectorAll('.edit-category-btn');
@@ -330,16 +449,136 @@ ob_start();
             const newName = document.getElementById('newName');
             const newParentId = document.getElementById('newParentId');
 
+            // Обработчик кнопок редактирования категории
             editButtons.forEach(button => {
                 button.addEventListener('click', () => {
                     editCategoryId.value = button.dataset.id;
-                    newName.value = button.dataset.name;
+                    newName.value = button.dataset.name || '';
                     newParentId.value = button.dataset.parent || '';
                     editModal.show();
                 });
             });
+
+            // Обработчик кнопок управления атрибутами
+            document.querySelectorAll('.manage-attributes-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const categoryId = button.dataset.categoryId;
+                    const categoryName = button.dataset.categoryName;
+                    const attributesContainer = document.getElementById('attributesContainer');
+
+                    if (!categoryId) {
+                        console.error('Category ID is missing.');
+                        return;
+                    }
+
+                    document.getElementById('categoryName').textContent = categoryName;
+
+                    // Загрузка атрибутов категории
+                    fetchAttributes(categoryId);
+                });
+            });
+
+            // Функция загрузки атрибутов категории
+            const fetchAttributes = (categoryId) => {
+                const attributesContainer = document.getElementById('attributesContainer');
+                fetch(`manage_attributes.php?category_id=${categoryId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.attributes && data.attributes.length > 0) {
+                            attributesContainer.innerHTML = '<ul class="list-group">';
+                            data.attributes.forEach(attr => {
+                                attributesContainer.innerHTML += `
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    ${attr.name} (${attr.type})
+                                    <div>
+                                        <span>${attr.is_required ? 'Required' : 'Optional'}</span>
+                                        <button class="btn btn-danger btn-sm delete-attribute-btn" data-id="${attr.id}">Delete</button>
+                                    </div>
+                                </li>
+                            `;
+                            });
+                            attributesContainer.innerHTML += '</ul>';
+                            addDeleteHandlers(categoryId); // Добавляем обработчики для удаления атрибутов
+                        } else {
+                            attributesContainer.innerHTML = '<p class="text-muted">No attributes for this category.</p>';
+                        }
+                    })
+                    .catch(error => console.error('Error fetching attributes:', error));
+            };
+
+            // Обработчик формы добавления атрибута
+            const addAttributeForm = document.getElementById('addAttributeForm');
+            addAttributeForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+
+                const formData = new FormData(addAttributeForm);
+                const categoryId = document.querySelector('.manage-attributes-btn[data-category-id]').dataset.categoryId;
+                formData.append('category_id', categoryId);
+
+                // Отправка запроса на добавление атрибута
+                fetch('manage_attributes.php', {
+                    method: 'POST',
+                    body: formData,
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            addAttributeForm.reset();
+                            fetchAttributes(categoryId); // Обновляем список атрибутов
+                        } else {
+                            alert('Failed to add attribute: ' + data.error);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+
+            // Обработчик удаления атрибутов
+            const addDeleteHandlers = (categoryId) => {
+                document.querySelectorAll('.delete-attribute-btn').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const attributeId = button.dataset.id;
+
+                        if (!attributeId) {
+                            console.error('Attribute ID is missing.');
+                            return;
+                        }
+
+                        if (confirm('Are you sure you want to remove this attribute from this category?')) {
+                            fetch('manage_attributes.php', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                },
+                                body: `action=delete_attribute&id=${attributeId}`,
+                            })
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(`HTTP error! Status: ${response.status}`);
+                                    }
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    if (data.success) {
+                                        fetchAttributes(categoryId); // Обновляем список атрибутов
+                                    } else {
+                                        alert('Failed to remove attribute: ' + data.error);
+                                    }
+                                })
+                                .catch(error => console.error('Error removing attribute:', error));
+                        }
+                    });
+                });
+            };
         });
     </script>
+
+
+
 <?php
 $content = ob_get_clean();
 require '../interface/templates/layout.php';

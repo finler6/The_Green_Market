@@ -33,7 +33,7 @@ $action = $data['action'];
 try {
     if ($action === 'add') {
         // Проверяем, существует ли уже запись
-        $checkQuery = "SELECT COUNT(*) FROM UserInterests WHERE user_id = :user_id AND event_id = :event_id";
+        $checkQuery = "SELECT COUNT(*) FROM userinterests WHERE user_id = :user_id AND event_id = :event_id";
         $checkStmt = $pdo->prepare($checkQuery);
         $checkStmt->execute(['user_id' => $user_id, 'event_id' => $event_id]);
         if ($checkStmt->fetchColumn() > 0) {
@@ -42,7 +42,7 @@ try {
         }
 
         // Добавляем запись, если её ещё нет
-        $query = "INSERT INTO UserInterests (user_id, event_id) VALUES (:user_id, :event_id)";
+        $query = "INSERT INTO userinterests (user_id, event_id) VALUES (:user_id, :event_id)";
         $stmt = $pdo->prepare($query);
         $stmt->execute(['user_id' => $user_id, 'event_id' => $event_id]);
         echo json_encode(['status' => 'success', 'message' => 'Added to interests']);
@@ -50,7 +50,7 @@ try {
 
     // Удаление из интересов
     elseif ($action === 'remove') {
-        $query = "DELETE FROM UserInterests WHERE user_id = :user_id AND event_id = :event_id";
+        $query = "DELETE FROM userinterests WHERE user_id = :user_id AND event_id = :event_id";
         $stmt = $pdo->prepare($query);
         $stmt->execute(['user_id' => $user_id, 'event_id' => $event_id]);
         echo json_encode(['status' => 'success', 'message' => 'Removed from interests']);

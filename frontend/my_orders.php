@@ -11,15 +11,15 @@ $title = 'My Orders';
 
 // Получение заказов клиента
 $query = "
-    SELECT Orders.id AS order_id, Orders.status, Orders.order_date,
-           Products.id AS product_id, Products.name AS product_name,
-           OrderItems.quantity, OrderItems.price_per_unit,
-           (OrderItems.quantity * OrderItems.price_per_unit) AS total_price
-    FROM Orders
-    JOIN OrderItems ON Orders.id = OrderItems.order_id
-    JOIN Products ON OrderItems.product_id = Products.id
-    WHERE Orders.customer_id = :customer_id
-    ORDER BY Orders.order_date DESC
+    SELECT orders.id AS order_id, orders.status, orders.order_date,
+           products.id AS product_id, products.name AS product_name,
+           orderitems.quantity, orderitems.price_per_unit,
+           (orderitems.quantity * orderitems.price_per_unit) AS total_price
+    FROM orders
+    JOIN orderitems ON orders.id = orderitems.order_id
+    JOIN products ON orderitems.product_id = products.id
+    WHERE orders.customer_id = :customer_id
+    ORDER BY orders.order_date DESC
 ";
 $stmt = $pdo->prepare($query);
 $stmt->execute(['customer_id' => $_SESSION['user_id']]);
@@ -29,17 +29,17 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $farmer_orders = [];
 if (in_array($_SESSION['user_role'], ['farmer', 'admin', 'moderator'])) {
     $farmer_query = "
-        SELECT Orders.id AS order_id, Orders.status, Orders.order_date,
-               Products.id AS product_id, Products.name AS product_name,
-               OrderItems.quantity, OrderItems.price_per_unit,
-               (OrderItems.quantity * OrderItems.price_per_unit) AS total_price,
-               Customers.name AS customer_name
-        FROM Orders
-        JOIN OrderItems ON Orders.id = OrderItems.order_id
-        JOIN Products ON OrderItems.product_id = Products.id
-        JOIN Users AS Customers ON Orders.customer_id = Customers.id
-        WHERE Products.farmer_id = :farmer_id AND Orders.status = 'pending'
-        ORDER BY Orders.order_date DESC
+        SELECT orders.id AS order_id, orders.status, orders.order_date,
+               products.id AS product_id, products.name AS product_name,
+               orderitems.quantity, orderitems.price_per_unit,
+               (orderitems.quantity * orderitems.price_per_unit) AS total_price,
+               customers.name AS customer_name
+        FROM orders
+        JOIN orderitems ON orders.id = orderitems.order_id
+        JOIN products ON orderitems.product_id = products.id
+        JOIN users AS customers ON Orders.customer_id = customers.id
+        WHERE products.farmer_id = :farmer_id AND orders.status = 'pending'
+        ORDER BY orders.order_date DESC
     ";
     $farmer_stmt = $pdo->prepare($farmer_query);
     $farmer_stmt->execute(['farmer_id' => $_SESSION['user_id']]);

@@ -5,7 +5,7 @@ require '../backend/db.php';
 $title = 'Browse Products';
 
 // Получение категорий для фильтрации
-$query = "SELECT id, name FROM Categories";
+$query = "SELECT id, name FROM categories";
 $categories = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
 
 // Фильтрация товаров
@@ -29,9 +29,9 @@ if ($order_by === 'price_asc') {
 }
 
 // Формирование запроса
-$query = "SELECT Products.id, Products.name, Categories.name AS category, Products.price, Products.quantity 
-          FROM Products
-          JOIN Categories ON Products.category_id = Categories.id
+$query = "SELECT products.id, products.name, categories.name AS category, products.price, products.quantity 
+          FROM products
+          JOIN categories ON products.category_id = categories.id
           $where_clause
           $order_clause";
 $stmt = $pdo->prepare($query);

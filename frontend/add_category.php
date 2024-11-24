@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_category'])) {
     $parent_id = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
 
     if (!empty($name)) {
-        $query = "INSERT INTO Categories (name, parent_id) VALUES (:name, :parent_id)";
+        $query = "INSERT INTO categories (name, parent_id) VALUES (:name, :parent_id)";
         $stmt = $pdo->prepare($query);
         $stmt->execute(['name' => $name, 'parent_id' => $parent_id]);
     } else {
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_category'])) {
 }
 
 // Получение родительских категорий
-$query = "SELECT id, name FROM Categories";
+$query = "SELECT id, name FROM categories";
 $stmt = $pdo->query($query);
 $parent_categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>

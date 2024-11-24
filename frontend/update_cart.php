@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($action) {
             case 'increase':
                 // Увеличиваем количество, если доступно
-                $query = "SELECT quantity FROM Products WHERE id = :product_id";
+                $query = "SELECT quantity FROM products WHERE id = :product_id";
                 $stmt = $pdo->prepare($query);
                 $stmt->execute(['product_id' => $product_id]);
                 $product = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             default:
                 // Для редактирования количества через поле
                 if ($quantity !== null) {
-                    $query = "SELECT quantity FROM Products WHERE id = :product_id";
+                    $query = "SELECT quantity FROM products WHERE id = :product_id";
                     $stmt = $pdo->prepare($query);
                     $stmt->execute(['product_id' => $product_id]);
                     $product = $stmt->fetch(PDO::FETCH_ASSOC);

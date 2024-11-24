@@ -20,13 +20,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['pro
                 $pdo->beginTransaction();
 
                 // Добавляем категорию в таблицу Categories
-                $query = "INSERT INTO Categories (name, parent_id)
-                          SELECT name, parent_id FROM CategoryProposals WHERE id = :proposal_id";
+                $query = "INSERT INTO categories (name, parent_id)
+                          SELECT name, parent_id FROM categoryproposals WHERE id = :proposal_id";
                 $stmt = $pdo->prepare($query);
                 $stmt->execute(['proposal_id' => $proposal_id]);
 
                 // Обновляем статус предложения
-                $query = "UPDATE CategoryProposals SET status = 'approved' WHERE id = :proposal_id";
+                $query = "UPDATE categoryproposals SET status = 'approved' WHERE id = :proposal_id";
                 $stmt = $pdo->prepare($query);
                 $stmt->execute(['proposal_id' => $proposal_id]);
 
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['pro
                 $error = "Failed to approve category: " . $e->getMessage();
             }
         } elseif ($action === 'reject') {
-            $query = "UPDATE CategoryProposals SET status = 'rejected' WHERE id = :proposal_id";
+            $query = "UPDATE categoryproposals SET status = 'rejected' WHERE id = :proposal_id";
             $stmt = $pdo->prepare($query);
             $stmt->execute(['proposal_id' => $proposal_id]);
         }
@@ -45,10 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['pro
 }
 
 // Получение предложений только после обработки
-$query = "SELECT CategoryProposals.id, CategoryProposals.name, CategoryProposals.status, Users.name AS user_name 
-          FROM CategoryProposals
-          JOIN Users ON CategoryProposals.user_id = Users.id
-          WHERE CategoryProposals.status = 'pending'";
+$query = "SELECT categoryproposals.id, categoryproposals.name, categoryproposals.status, users.name AS user_name 
+          FROM categoryproposals
+          JOIN users ON categoryproposals.user_id = Users.id
+          WHERE categoryproposals.status = 'pending'";
 $proposals = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>

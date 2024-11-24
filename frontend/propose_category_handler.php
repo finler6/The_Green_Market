@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['propose_category'])) 
     $parent_id = validateInt($_POST['parent_id'], 1) ?: null;
 
     if ($name) {
-        $query = "INSERT INTO CategoryProposals (name, parent_id, user_id) VALUES (:name, :parent_id, :user_id)";
+        $query = "INSERT INTO categoryproposals (name, parent_id, user_id) VALUES (:name, :parent_id, :user_id)";
         $stmt = $pdo->prepare($query);
         $stmt->execute([
             'name' => $name,

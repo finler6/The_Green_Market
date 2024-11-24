@@ -35,7 +35,7 @@ function renderNavigation($role = null) {
                         </li>
                     <?php elseif ($role === 'moderator'): ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="<?= BASE_URL ?>/frontend/moderator_dashboard.php">Dashboard</a>
+                            <a class="nav-link" href="<?= BASE_URL ?>/frontend/old/moderator_dashboard.php">Dashboard</a>
                         </li>
                     <?php elseif ($role === 'farmer'): ?>
                         <li class="nav-item">
@@ -67,7 +67,7 @@ function renderNavigation($role = null) {
                             <a class="nav-link btn btn-outline-primary btn-sm" href="<?= BASE_URL ?>/frontend/old/login.php">Login</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link btn btn-outline-success btn-sm" href="<?= BASE_URL ?>/frontend/old/register.php">Register</a>
+                            <a class="nav-link btn btn-outline-success btn-sm" href="<?= BASE_URL ?>/frontend/register.php">Register</a>
                         </li>
                     <?php endif; ?>
                 </ul>

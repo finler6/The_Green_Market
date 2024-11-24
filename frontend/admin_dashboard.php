@@ -10,17 +10,17 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 // Получение данных для статистики
-$total_users = $pdo->query("SELECT COUNT(*) AS total_users FROM Users")->fetchColumn();
-$total_products = $pdo->query("SELECT COUNT(*) AS total_products FROM Products")->fetchColumn();
-$total_orders = $pdo->query("SELECT COUNT(*) AS total_orders FROM Orders")->fetchColumn();
-$total_revenue = $pdo->query("SELECT SUM(total_price) AS total_revenue FROM Orders WHERE status = 'completed'")->fetchColumn();
-$pending_categories = $pdo->query("SELECT COUNT(*) AS pending_categories FROM CategoryProposals WHERE status = 'pending'")->fetchColumn();
+$total_users = $pdo->query("SELECT COUNT(*) AS total_users FROM users")->fetchColumn();
+$total_products = $pdo->query("SELECT COUNT(*) AS total_products FROM products")->fetchColumn();
+$total_orders = $pdo->query("SELECT COUNT(*) AS total_orders FROM orders")->fetchColumn();
+$total_revenue = $pdo->query("SELECT SUM(total_price) AS total_revenue FROM orders WHERE status = 'completed'")->fetchColumn();
+$pending_categories = $pdo->query("SELECT COUNT(*) AS pending_categories FROM categoryproposals WHERE status = 'pending'")->fetchColumn();
 
 // Получение данных для графиков
 // Заказы по месяцам
 $monthly_orders_query = $pdo->query("
     SELECT DATE_FORMAT(order_date, '%Y-%m') AS month, COUNT(*) AS total_orders
-    FROM Orders
+    FROM orders
     GROUP BY month
     ORDER BY month ASC
 ");
@@ -37,10 +37,10 @@ $users_by_month = $users_by_month_query->fetchAll(PDO::FETCH_ASSOC);
 
 // Данные для популярных продуктов по количеству заказов
 $popular_products_query = $pdo->query("
-    SELECT Products.name, COUNT(OrderItems.id) AS total_orders
-    FROM OrderItems
-    JOIN Products ON OrderItems.product_id = Products.id
-    GROUP BY Products.id 
+    SELECT products.name, COUNT(orderitems.id) AS total_orders
+    FROM orderitems
+    JOIN products ON orderitems.product_id = products.id
+    GROUP BY products.id 
     ORDER BY total_orders DESC
     LIMIT 5
 ");
@@ -48,10 +48,10 @@ $popular_products = $popular_products_query->fetchAll(PDO::FETCH_ASSOC);
 
 // Данные для популярных продуктов по количеству товаров
 $popular_products_query_in_quantity = $pdo->query("
-    SELECT Products.name, SUM(OrderItems.quantity) AS total_quantity
-    FROM OrderItems
-    JOIN Products ON OrderItems.product_id = Products.id
-    GROUP BY Products.id 
+    SELECT products.name, SUM(orderitems.quantity) AS total_quantity
+    FROM orderitems
+    JOIN products ON orderitems.product_id = products.id
+    GROUP BY products.id 
     ORDER BY total_quantity DESC
     LIMIT 5
 ");
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_role'])) {
     $user_id = (int)$_POST['user_id'];
     $new_role = htmlspecialchars($_POST['role']);
 
-    $query = "UPDATE Users SET role = :role WHERE id = :id";
+    $query = "UPDATE users SET role = :role WHERE id = :id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['role' => $new_role, 'id' => $user_id]);
 }
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
     }
 
     $user_id = (int)$_POST['user_id'];
-    $query = "DELETE FROM Users WHERE id = :id";
+    $query = "DELETE FROM users WHERE id = :id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['id' => $user_id]);
 }
@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_user'])) {
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
     $role = $_POST['role'];
 
-    $query = "INSERT INTO Users (name, email, password, role) VALUES (:name, :email, :password, :role)";
+    $query = "INSERT INTO users (name, email, password, role) VALUES (:name, :email, :password, :role)";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['name' => $name, 'email' => $email, 'password' => $password, 'role' => $role]);
 
@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['query'])) {
     $search_query = "%$query%";
     $search_users_query = $pdo->prepare("
         SELECT id, name, email, role 
-        FROM Users 
+        FROM users 
         WHERE name LIKE :query OR email LIKE :query
     ");
     $search_users_query->execute(['query' => $search_query]);
@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['query'])) {
 }
 
 // Получение списка пользователей
-$query = "SELECT id, name, email, role FROM Users";
+$query = "SELECT id, name, email, role FROM users";
 $stmt = $pdo->query($query);
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

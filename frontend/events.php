@@ -13,7 +13,7 @@ $interested_events = [];
 
 // Проверяем, авторизован ли пользователь
 if ($logged_in) {
-    $is_interested_query = "SELECT event_id FROM UserInterests WHERE user_id = :user_id";
+    $is_interested_query = "SELECT event_id FROM userinterests WHERE user_id = :user_id";
     $is_interested_stmt = $pdo->prepare($is_interested_query);
     $is_interested_stmt->execute(['user_id' => $_SESSION['user_id']]);
     $interested_events = $is_interested_stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_event']) && $is_f
     $organizer_id = $_SESSION['user_id'];
 
     if (!empty($name) && !empty($location) && !empty($date)) {
-        $query = "INSERT INTO Events (name, location, date, organizer_id) VALUES (:name, :location, :date, :organizer_id)";
+        $query = "INSERT INTO events (name, location, date, organizer_id) VALUES (:name, :location, :date, :organizer_id)";
         $stmt = $pdo->prepare($query);
         $stmt->execute(['name' => $name, 'location' => $location, 'date' => $date, 'organizer_id' => $organizer_id]);
         $success = "Event created successfully!";
@@ -51,8 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_event']) && $i
 
     // Удаление только для своих событий или для админов/модераторов
     $query = $is_admin_or_moderator
-        ? "DELETE FROM Events WHERE id = :event_id"
-        : "DELETE FROM Events WHERE id = :event_id AND organizer_id = :organizer_id";
+        ? "DELETE FROM events WHERE id = :event_id"
+        : "DELETE FROM events WHERE id = :event_id AND organizer_id = :organizer_id";
     $stmt = $pdo->prepare($query);
     $params = ['event_id' => $event_id];
     if (!$is_admin_or_moderator) {
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_event']) && $i
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_interests']) && $logged_in) {
     $event_id = (int)$_POST['event_id'];
 
-    $query = "INSERT IGNORE INTO UserInterests (user_id, event_id) VALUES (:user_id, :event_id)";
+    $query = "INSERT IGNORE INTO userinterests (user_id, event_id) VALUES (:user_id, :event_id)";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['user_id' => $_SESSION['user_id'], 'event_id' => $event_id]);
 }
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_interests']) &
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_from_interests']) && $logged_in) {
     $event_id = (int)$_POST['event_id'];
 
-    $query = "DELETE FROM UserInterests WHERE user_id = :user_id AND event_id = :event_id";
+    $query = "DELETE FROM userinterests WHERE user_id = :user_id AND event_id = :event_id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['user_id' => $_SESSION['user_id'], 'event_id' => $event_id]);
 }
@@ -93,8 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_event']) && $is_
 
     // Изменение только своих событий или любых событий для админов/модераторов
     $query = $is_admin_or_moderator
-        ? "UPDATE Events SET name = :name, location = :location, date = :date WHERE id = :event_id"
-        : "UPDATE Events SET name = :name, location = :location, date = :date WHERE id = :event_id AND organizer_id = :organizer_id";
+        ? "UPDATE events SET name = :name, location = :location, date = :date WHERE id = :event_id"
+        : "UPDATE events SET name = :name, location = :location, date = :date WHERE id = :event_id AND organizer_id = :organizer_id";
     $stmt = $pdo->prepare($query);
     $params = ['event_id' => $event_id, 'name' => $name, 'location' => $location, 'date' => $date];
     if (!$is_admin_or_moderator) {
@@ -135,20 +135,20 @@ if ($filter === 'my_events') {
 
 if ($filter === 'my_interests') {
     // Фильтрация для интересов текущего пользователя
-    $query = "SELECT Events.id, Events.name, Events.location, Events.date, Events.organizer_id, Users.name AS organizer 
-              FROM UserInterests
-              JOIN Events ON UserInterests.event_id = Events.id
-              LEFT JOIN Users ON Events.organizer_id = Users.id
-              WHERE UserInterests.user_id = :user_id";
+    $query = "SELECT events.id, events.name, events.location, events.date, events.organizer_id, users.name AS organizer 
+              FROM userinterests
+              JOIN events ON userinterests.event_id = events.id
+              LEFT JOIN users ON events.organizer_id = users.id
+              WHERE userinterests.user_id = :user_id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['user_id' => $_SESSION['user_id']]);
     $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
     // Обычный запрос всех событий с фильтрацией
     $where_clause = $where_clauses ? "WHERE " . implode(" AND ", $where_clauses) : "";
-    $query = "SELECT Events.id, Events.name, Events.location, Events.date, Events.organizer_id, Users.name AS organizer 
-              FROM Events
-              LEFT JOIN Users ON Events.organizer_id = Users.id
+    $query = "SELECT events.id, events.name, events.location, events.date, events.organizer_id, users.name AS organizer 
+              FROM events
+              LEFT JOIN users ON events.organizer_id = users.id
               $where_clause";
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);

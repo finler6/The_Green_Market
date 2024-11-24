@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
     </div>
     <button type="submit" class="btn btn-success">Register</button>
-    <a href="login.php" class="btn btn-secondary">Cancel</a>
+    <a href="old/login.php" class="btn btn-secondary">Cancel</a>
 </form>
 </body>
 </html>

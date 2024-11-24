@@ -14,11 +14,11 @@ if (!$event_id) {
 
 // Получаем данные события
 $query = "
-    SELECT Events.id, Events.name, Events.location, Events.date, Events.description, 
-           Events.organizer_id, Users.name AS organizer 
-    FROM Events
-    LEFT JOIN Users ON Events.organizer_id = Users.id
-    WHERE Events.id = :event_id
+    SELECT events.id, events.name, events.location, events.date, events.description, 
+           events.organizer_id, users.name AS organizer 
+    FROM events
+    LEFT JOIN Users ON events.organizer_id = Users.id
+    WHERE events.id = :event_id
 ";
 $stmt = $pdo->prepare($query);
 $stmt->execute(['event_id' => $event_id]);
@@ -30,7 +30,7 @@ if (!$event) {
 }
 
 // Получаем изображения события
-$image_query = "SELECT image_path FROM EventImages WHERE event_id = :event_id";
+$image_query = "SELECT image_path FROM eventimages WHERE event_id = :event_id";
 $image_stmt = $pdo->prepare($image_query);
 $image_stmt->execute(['event_id' => $event_id]);
 $event_images = $image_stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -65,7 +65,7 @@ $is_interested = false;
 
 // Проверяем, добавлено ли событие в интересы
 if ($logged_in) {
-    $query = "SELECT id FROM UserInterests WHERE user_id = :user_id AND event_id = :event_id";
+    $query = "SELECT id FROM userinterests WHERE user_id = :user_id AND event_id = :event_id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['user_id' => $user_id, 'event_id' => $event_id]);
     $is_interested = $stmt->rowCount() > 0;
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_event']) && $is_
     $delete_images = $_POST['delete_images'] ?? [];
 
     if (!empty($name) && !empty($location) && !empty($date)) {
-        $query = "UPDATE Events SET name = :name, location = :location, date = :date, description = :description WHERE id = :event_id";
+        $query = "UPDATE events SET name = :name, location = :location, date = :date, description = :description WHERE id = :event_id";
         $stmt = $pdo->prepare($query);
         $stmt->execute([
             'name' => $name,
@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_event']) && $is_
 
         // Удаление выбранных изображений
         if (!empty($delete_images)) {
-            $delete_query = "DELETE FROM EventImages WHERE event_id = :event_id AND image_path = :image_path";
+            $delete_query = "DELETE FROM eventimages WHERE event_id = :event_id AND image_path = :image_path";
             $delete_stmt = $pdo->prepare($delete_query);
             foreach ($delete_images as $image) {
                 $image_path = htmlspecialchars(trim($image));
@@ -117,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_event']) && $is_
 
         // Добавление новых изображений
         if (!empty($new_images)) {
-            $insert_query = "INSERT INTO EventImages (event_id, image_path) VALUES (:event_id, :image_path)";
+            $insert_query = "INSERT INTO eventimages (event_id, image_path) VALUES (:event_id, :image_path)";
             $insert_stmt = $pdo->prepare($insert_query);
             foreach ($new_images as $image) {
                 $image_path = htmlspecialchars(trim($image));

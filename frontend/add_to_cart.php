@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Получение информации о продукте
-    $query = "SELECT id, name, price, quantity AS stock FROM Products WHERE id = :product_id";
+    $query = "SELECT id, name, price, quantity AS stock FROM products WHERE id = :product_id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['product_id' => $product_id]);
     $product = $stmt->fetch(PDO::FETCH_ASSOC);

@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="password" class="form-control" id="password" name="password" required>
     </div>
     <button type="submit" class="btn btn-success">Login</button>
-    <a href="register.php" class="btn btn-secondary">Register</a>
+    <a href="../register.php" class="btn btn-secondary">Register</a>
 </form>
 </body>
 </html>

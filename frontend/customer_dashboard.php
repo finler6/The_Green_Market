@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart'])) {
     $quantity = (int)$_POST['quantity'];
 
     if ($product_id > 0 && $quantity > 0) {
-        $query = "SELECT quantity FROM Products WHERE id = :product_id";
+        $query = "SELECT quantity FROM products WHERE id = :product_id";
         $stmt = $pdo->prepare($query);
         $stmt->execute(['product_id' => $product_id]);
         $product = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['propose_category'])) 
     $parent_id = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
 
     if (!empty($name)) {
-        $query = "INSERT INTO CategoryProposals (name, parent_id, user_id) VALUES (:name, :parent_id, :user_id)";
+        $query = "INSERT INTO categoryproposals (name, parent_id, user_id) VALUES (:name, :parent_id, :user_id)";
         $stmt = $pdo->prepare($query);
         $stmt->execute(['name' => $name, 'parent_id' => $parent_id, 'user_id' => $_SESSION['user_id']]);
         $success = "Your proposal has been submitted for review.";
@@ -55,13 +55,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['propose_category'])) 
 }
 
 // Получение списка товаров
-$query = "SELECT Products.id, Products.name, Categories.name AS category, Products.price, Products.quantity, Products.description
-          FROM Products
-          JOIN Categories ON Products.category_id = Categories.id";
+$query = "SELECT products.id, products.name, categories.name AS category, products.price, products.quantity, products.description
+          FROM products
+          JOIN categories ON products.category_id = categories.id";
 $products = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
 
 // Получение списка категорий для модального окна
-$query = "SELECT id, name FROM Categories";
+$query = "SELECT id, name FROM categories";
 $categories = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>

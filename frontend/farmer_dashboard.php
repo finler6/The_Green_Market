@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
     $description = htmlspecialchars(trim($_POST['description']));
 
     if (!empty($name) && $category_id && $price > 0 && $quantity >= 0) {
-        $query = "INSERT INTO Products (name, farmer_id, category_id, price, quantity, description)
+        $query = "INSERT INTO products (name, farmer_id, category_id, price, quantity, description)
                   VALUES (:name, :farmer_id, :category_id, :price, :quantity, :description)";
         $stmt = $pdo->prepare($query);
         $stmt->execute([
@@ -35,16 +35,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
 }
 
 // Получение списка товаров фермера
-$query = "SELECT Products.id, Products.name, Categories.name AS category, Products.price, Products.quantity, Products.description
-          FROM Products
-          JOIN Categories ON Products.category_id = Categories.id
-          WHERE Products.farmer_id = :farmer_id";
+$query = "SELECT products.id, products.name, categories.name AS category, products.price, products.quantity, products.description
+          FROM products
+          JOIN categories ON products.category_id = categories.id
+          WHERE products.farmer_id = :farmer_id";
 $stmt = $pdo->prepare($query);
 $stmt->execute(['farmer_id' => $farmer_id]);
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Получение категорий для добавления товара
-$query = "SELECT id, name FROM Categories";
+$query = "SELECT id, name FROM categories";
 $categories = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>

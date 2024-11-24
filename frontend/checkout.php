@@ -29,7 +29,7 @@ $total = 0;
 // Проверяем товары в корзине
 if (!empty($cart)) {
     $placeholders = implode(',', array_fill(0, count($cart), '?'));
-    $query = "SELECT id, name, price, quantity FROM Products WHERE id IN ($placeholders)";
+    $query = "SELECT id, name, price, quantity FROM products WHERE id IN ($placeholders)";
     $stmt = $pdo->prepare($query);
     $stmt->execute(array_keys($cart));
     $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -65,13 +65,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             $pdo->beginTransaction();
 
             // Создаем заказ
-            $query = "INSERT INTO Orders (customer_id, status, order_date) VALUES (:customer_id, 'pending', NOW())";
+            $query = "INSERT INTO orders (customer_id, status, order_date) VALUES (:customer_id, 'pending', NOW())";
             $stmt = $pdo->prepare($query);
             $stmt->execute(['customer_id' => $customer_id]);
             $order_id = $pdo->lastInsertId();
 
             // Добавляем товары в OrderItems
-            $query = "INSERT INTO OrderItems (order_id, product_id, quantity, price_per_unit) 
+            $query = "INSERT INTO orderitems (order_id, product_id, quantity, price_per_unit) 
                       VALUES (:order_id, :product_id, :quantity, :price_per_unit)";
             $stmt = $pdo->prepare($query);
 
@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
                 ]);
 
                 // Обновляем количество товара
-                $update_query = "UPDATE Products SET quantity = quantity - :quantity WHERE id = :product_id";
+                $update_query = "UPDATE products SET quantity = quantity - :quantity WHERE id = :product_id";
                 $update_stmt = $pdo->prepare($update_query);
                 $update_stmt->execute([
                     'quantity' => $item['quantity'],
