@@ -1,4 +1,3 @@
-/* Устанавливаем высоту и структуру страницы */
 body, html {
     height: 100%;
     margin: 0;
@@ -32,29 +31,29 @@ body::before {
 
 #heroSlider {
     position: relative;
-    top: 0px; /* Сдвигает слайдер вверх на 50px */
-    z-index: 1; /* Убедитесь, что он будет поверх других элементов */
+    top: 0px;
+    z-index: 1;
 }
 
 
 .carousel-item img {
     width: 100%;
-    height: 500px; /* Высота фиксируется, чтобы все изображения выглядели одинаково */
-    object-fit: cover; /* Масштабируем изображение по ширине, сохраняя пропорции */
-    display: block; /* Убираем возможные лишние отступы */
+    height: 500px;
+    object-fit: cover;
+    display: block;
 }
 
 .carousel-caption .caption-bg {
-    background-color: rgba(0, 0, 0, 0.6); /* Полупрозрачный черный фон */
-    border-radius: 8px; /* Закругленные углы */
-    padding: 10px; /* Отступы внутри блока */
-    display: inline-block; /* Устанавливаем ширину блока только по содержимому */
-    max-width: 80%; /* Ограничиваем ширину фона */
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 8px;
+    padding: 10px;
+    display: inline-block;
+    max-width: 80%;
 }
 .carousel-caption h5 {
-    color: #fff; /* Белый текст для лучшей читаемости */
-    margin: 0; /* Убираем лишние отступы */
-    text-align: center; /* Выравниваем текст по центру */
+    color: #fff;
+    margin: 0;
+    text-align: center;
 }
 
 .container {
@@ -63,9 +62,8 @@ body::before {
     padding: 20px;
 }
 
-/* Навигация */
 .main-header {
-    background-color: rgba(20, 110, 41, 0.8); /* Зеленый цвет с 80% непрозрачности */
+    background-color: rgba(20, 110, 41, 0.8);
     padding: 15px 0;
     box-shadow: 0 4px 7px rgba(0, 0, 0, 0.65);
 }
@@ -89,7 +87,7 @@ body::before {
 }
 
 .profile-icon {
-    width: 30px; /* Уменьшено на 25% (из 40px) */
+    width: 30px;
     height: 30px;
     transition: transform 0.3s ease;
 }
@@ -112,42 +110,40 @@ body::before {
     list-style: none;
     padding: 0;
     margin: 0;
-    align-items: center; /* Выровнять элементы по центру */
-    height: 100%; /* Устанавливаем высоту, чтобы соответствовать navbar */
+    align-items: center;
+    height: 100%;
 }
 .navbar-links li {
     display: flex;
-    align-items: center; /* Выровнять текст по вертикали */
-    height: 100%; /* Высота кнопки равна высоте родителя */
+    align-items: center;
+    height: 100%;
 }
 
 .navbar-links a {
-    display: inline-flex; /* Добавляем flex для текста внутри ссылок */
-    align-items: center; /* Центрируем текст по вертикали */
+    display: inline-flex;
+    align-items: center;
     color: #fff;
     text-decoration: none;
     padding: 8px 15px;
     border-radius: 5px;
     transition: background-color 0.3s ease;
-    height: 100%; /* Высота ссылки равна высоте навигации */
+    height: 100%;
 }
 .navbar-links a:hover {
-    background-color: #1e7031; /* Темно-зеленый при наведении */
+    background-color: #1e7031;
 }
 
-/* Универсальный стиль для кнопок Login и Register */
 .navbar-links .btn-primary {
     background-color: #1c3ac1;
     color: #fff;
     border: none;
-    height: auto; /* Автоматическая высота для кнопок */
+    height: auto;
 }
 
 .navbar-links .btn-primary:hover {
-    background-color: #0056b3; /* Цвет при наведении */
+    background-color: #0056b3;
 }
 
-/* Стили для корзины */
 .navbar-cart {
     position: relative;
     display: flex;
@@ -162,20 +158,19 @@ body::before {
 }
 
 .cart-icon {
-    width: 30px; /* Уменьшено на 25% (из 40px) */
+    width: 30px;
     height: 30px;
     transition: transform 0.3s ease;
 }
 
 .cart-link:hover .cart-icon {
-    transform: scale(1.1); /* Увеличиваем значок корзины при наведении */
+    transform: scale(1.1);
 }
 
-/* Счетчик товаров */
 .cart-count {
     position: absolute;
-    top: 0px; /* Смещаем вверх относительно корзины */
-    right: 5px; /* Смещаем вправо относительно корзины */
+    top: 0px;
+    right: 5px;
     background-color: red;
     color: white;
     font-size: 0.7rem;
@@ -187,20 +182,18 @@ body::before {
     justify-content: center;
     align-items: center;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-    transition: transform 0.3s ease, background-color 0.3s ease; /* Плавный переход при наведении */
+    transition: transform 0.3s ease, background-color 0.3s ease;
 }
 
-/* Hover-эффект для счетчика */
 .cart-link:hover .cart-count {
-    background-color: red; /* Меняем цвет фона на более темный */
-    transform: scale(1.2); /* Увеличиваем кружок при наведении */
+    background-color: red;
+    transform: scale(1.2);
 }
 
-/* Основные стили для гамбургера */
 .navbar-hamburger {
     position: relative;
 }
-/* Базовый стиль меню */
+
 .dropdown-menu {
     position: absolute;
     top: 40px;
@@ -212,15 +205,14 @@ body::before {
     padding: 10px 0;
     min-width: 150px;
     z-index: 10;
-    visibility: hidden; /* Меню скрыто по умолчанию */
-    opacity: 0; /* Полностью прозрачное */
-    transition: visibility 0s, opacity 0.3s ease; /* Плавное появление */
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0s, opacity 0.3s ease;
 }
 
-/* Показываем меню */
 .dropdown-menu-show {
-    visibility: visible; /* Меню видно */
-    opacity: 1; /* Полностью непрозрачное */
+    visibility: visible;
+    opacity: 1;
 }
 
 .dropdown-menu li {
@@ -235,10 +227,9 @@ body::before {
 }
 
 .dropdown-menu li a:hover {
-    color: #218838; /* Зеленый цвет при наведении */
+    color: #218838;
 }
 
-/* Иконка гамбургера */
 .hamburger-icon {
     font-size: 24px;
     background: none;
@@ -249,42 +240,41 @@ body::before {
 }
 
 .hamburger-icon:hover {
-    transform: scale(1.1); /* Увеличение при наведении */
+    transform: scale(1.1);
 }
 
 .delete-product {
-    background-color: #dc3545; /* Красный цвет */
-    color: white; /* Белый текст */
-    border: none; /* Без границ */
-    padding: 10px 15px; /* Внутренние отступы */
-    border-radius: 5px; /* Скруглённые углы */
-    cursor: pointer; /* Курсор указателя */
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
 }
 
 .delete-product:hover {
-    background-color: #c82333; /* Более тёмный красный при наведении */
+    background-color: #c82333;
 }
 
 .delete-product:active {
-    background-color: #bd2130; /* Ещё более тёмный красный при нажатии */
-    transform: scale(0.95); /* Лёгкий эффект уменьшения */
+    background-color: #bd2130;
+    transform: scale(0.95);
 }
 
 
 .content-wrapper {
     background-color: #fff;
-    padding: 40px; /* Внутренние отступы */
+    padding: 40px;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    width: 100%; /* Полная ширина */
-    max-width: 1200px; /* Ограничение максимальной ширины */
-    margin: 20px auto; /* Центрирование содержимого */
-    overflow: visible; /* Убираем ограничения на содержимое */
+    width: 100%;
+    max-width: 1200px;
+    margin: 20px auto;
+    overflow: visible;
 }
 
-/* Таблицы */
 .table {
-    width: 100%; /* Таблица растягивается на всю ширину */
+    width: 100%;
     margin-top: 20px;
     border-collapse: collapse;
     background-color: #fff;
@@ -298,7 +288,7 @@ body::before {
     padding: 15px;
     text-align: left;
     border-bottom: 1px solid #ddd;
-    word-wrap: break-word; /* Текст переносится */
+    word-wrap: break-word;
 }
 
 .table th {
@@ -310,7 +300,6 @@ body::before {
     background-color: #f1f1f1;
 }
 
-/* Кнопки */
 .btn {
     display: inline-block;
     padding: 10px 20px;
@@ -321,33 +310,33 @@ body::before {
 }
 
 .btn-add {
-    background-color: #007bff; /* Синий цвет */
+    background-color: #007bff;
     color: #fff;
     border: none;
 }
 
 .btn-add:hover {
-    background-color: #0056b3; /* Темно-синий при наведении */
+    background-color: #0056b3;
 }
 
 .btn-remove {
-    background-color: #0056b3; /* Желтый цвет */
+    background-color: #0056b3;
     color: #fff;
     border: none;
 }
 
 .btn-remove:hover {
-    background-color: #0056b3; /* Темно-желтый при наведении */
+    background-color: #0056b3;
 }
 
 .btn-delete {
-    background-color: #0056b3; /* Красный цвет */
+    background-color: #0056b3;
     color: #fff;
     border: none;
 }
 
 .btn-delete:hover {
-    background-color: #0056b3; /* Темно-красный при наведении */
+    background-color: #0056b3;
 }
 
 .btn-primary {
@@ -377,17 +366,15 @@ body::before {
     margin-top: 20px;
 }
 
-/* Основной контент */
 .main-content {
     flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    align-items: stretch; /* Растягиваем по ширине */
-    padding: 20px; /* Уменьшаем отступы */
+    align-items: stretch;
+    padding: 20px;
 }
 
-/* Подвал */
 .footer {
     background-color: rgba(20, 110, 41, 0.8);
     color: #ffffff;
@@ -404,9 +391,9 @@ body::before {
 
 .products-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Автоматическое распределение колонок */
-    gap: 20px; /* Расстояние между карточками */
-    margin-top: 20px; /* Отступ сверху */
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
 }
 
 .product-card {
@@ -425,13 +412,13 @@ body::before {
 }
 
 .product-card a {
-    text-decoration: none; /* Убираем подчеркивание */
-    color: inherit; /* Наследуем цвет от родителя */
+    text-decoration: none;
+    color: inherit;
 }
 
 .product-card a:hover {
-    text-decoration: none; /* Подчеркивание при наведении (опционально) */
-    color: inherit; /* Более насыщенный цвет при наведении */
+    text-decoration: none;
+    color: inherit;
 }
 
 .product-card h3 {
@@ -447,23 +434,23 @@ body::before {
 }
 
 .product-card a {
-    text-decoration: none; /* Убираем подчеркивание */
-    color: inherit; /* Наследуем цвет от родителя */
+    text-decoration: none;
+    color: inherit;
 }
 
 .product-card a:hover {
-    text-decoration: none; /* Подчеркивание при наведении (опционально) */
-    color: inherit; /* Более насыщенный цвет при наведении */
+    text-decoration: none;
+    color: inherit;
 }
 
 .product-link {
-    color: inherit; /* Использовать цвет текста родителя */
-    text-decoration: none; /* Убирает подчеркивание */
+    color: inherit;
+    text-decoration: none;
 }
 
 .product-link:hover {
     color: inherit;
-    text-decoration: none; /* Опционально: оставить без подчеркивания */
+    text-decoration: none;
 }
 
 .product-card .btn-add-to-cart {
@@ -487,60 +474,60 @@ body::before {
 }
 
 .product-title {
-    font-size: 2.5rem; /* Размер шрифта названия */
+    font-size: 2.5rem;
     font-weight: bold;
-    margin-bottom: 20px; /* Отступ снизу */
-    color: #333; /* Цвет текста */
+    margin-bottom: 20px;
+    color: #333;
 }
 
 .product-details {
     display: flex;
-    justify-content: space-between; /* Пространство между элементами */
-    align-items: flex-start; /* Выровнять по верхнему краю */
-    gap: 20px; /* Расстояние между блоками */
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
 }
 
 .product-info {
-    flex: 1; /* Растягивается, чтобы занять доступное пространство */
-    max-width: 60%; /* Максимальная ширина для текста */
+    flex: 1;
+    max-width: 60%;
 }
 
 .product-gallery {
-    flex: 1; /* Галерея занимает равное пространство */
-    max-width: 35%; /* Устанавливаем ширину галереи */
-    text-align: center; /* Центрируем элементы галереи */
+    flex: 1;
+    max-width: 35%;
+    text-align: center;
 }
 
 .gallery-container {
     position: relative;
     width: 100%;
-    max-width: 500px; /* Максимальная ширина галереи */
-    height: 300px; /* Фиксированная высота галереи */
-    overflow: hidden; /* Скрываем лишние изображения */
+    max-width: 500px;
+    height: 300px;
+    overflow: hidden;
     text-align: center;
 }
 
 .gallery-images {
     display: flex;
-    flex-wrap: nowrap; /* Изображения располагаются в одну линию */
-    transition: transform 0.5s ease-in-out; /* Плавное переключение */
+    flex-wrap: nowrap;
+    transition: transform 0.5s ease-in-out;
     height: 100%;
-    width: 100%; /* Начальная ширина (будет изменена JavaScript'ом) */
+    width: 100%;
 }
 
 .gallery-images img {
     flex-shrink: 0;
-    width: 100%; /* Каждое изображение занимает всю ширину видимого контейнера */
-    height: 100%; /* Масштабируем по высоте контейнера */
-    object-fit: contain; /* Сохраняем пропорции */
-    border-radius: 8px; /* Скругление углов */
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .placeholder-image {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Плейсхолдер сохраняет пропорции */
+    object-fit: contain;
 }
 
 
@@ -641,10 +628,9 @@ body::before {
 
 .modal.show {
     display: block !important;
-    background-color: rgba(0, 0, 0, 0.5); /* Затемнение фона */
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
-/* Адаптивность */
 @media (max-width: 768px) {
     .navbar-container {
         flex-direction: column;
@@ -657,11 +643,9 @@ body::before {
     }
 
     .products-container {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Для мобильных устройств */
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     }
 }
-
-/* Страница заказов */
 
 .orders-container {
     display: grid;
@@ -695,7 +679,6 @@ body::before {
     font-size: 1rem;
 }
 
-/* Страница продукта */
 
 .modal-content {
     border-radius: 10px;
@@ -713,18 +696,17 @@ body::before {
     padding-top: 10px;
 }
 
-/* Рейтинг */
 .product-rating .stars {
-    color: #ffc107; /* Желтый цвет для звезд */
-    font-size: 1.2rem; /* Размер звезд */
-    margin-left: 10px; /* Отступ от текста */
+    color: #ffc107;
+    font-size: 1.2rem;
+    margin-left: 10px;
     vertical-align: middle;
 }
 
 .product-rating .stars .fa-star,
 .product-rating .stars .fa-star-half-alt,
 .product-rating .stars .fa-star-o {
-    margin-right: 2px; /* Расстояние между звездами */
+    margin-right: 2px;
 }
 
 .rating-stars {
@@ -739,38 +721,37 @@ body::before {
 }
 
 .rating-stars .fa-star.text-warning {
-    color: #ffc107; /* Цвет выделенной звезды */
+    color: #ffc107;
 }
 
 .rating-stars .fa-star {
-    color: #ddd; /* Цвет невыделенной звезды */
+    color: #ddd;
 }
 
 .rating-stars .fa-star:hover {
     transform: scale(1.2);
-    color: #ffc107; /* Цвет звезды при наведении */
+    color: #ffc107;
 }
 
 .product-rating .stars {
-    color: #ffc107; /* Желтый цвет для звезд */
-    font-size: 1.2rem; /* Размер звезд */
-    margin-left: 10px; /* Отступ от текста */
+    color: #ffc107;
+    font-size: 1.2rem;
+    margin-left: 10px;
     vertical-align: middle;
 }
 
 .product-rating .stars .fa-star,
 .product-rating .stars .fa-star-half-alt,
 .product-rating .stars .fa-star-o {
-    margin-right: 2px; /* Расстояние между звездами */
+    margin-right: 2px;
 }
 
-/* Страница событий */
 
 .events-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Адаптивная сетка */
-    gap: 20px; /* Расстояние между карточками */
-    margin-top: 20px; /* Отступ сверху */
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
 }
 
 .event-description {
@@ -796,26 +777,26 @@ body::before {
 .event-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
-    position: relative; /* Для взаимодействия с вложенными элементами */
+    position: relative;
 }
 
 .event-card-link {
-    text-decoration: none; /* Убираем стандартное оформление ссылок */
-    color: inherit; /* Сохраняем цвет текста */
+    text-decoration: none;
+    color: inherit;
 }
 
 .event-card-link:hover .event-card {
-    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2); /* Сохраняем эффект hover */
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
 }
 
 .event-card {
-    position: relative; /* Устанавливаем относительное позиционирование для управления элементами внутри */
+    position: relative;
 }
 
 .event-card:hover {
-    transform: scale(1.05); /* Легкое увеличение при наведении */
-    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2); /* Более сильная тень */
-    z-index: 10; /* Поднимаем карточку над остальными */
+    transform: scale(1.05);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+    z-index: 10;
 }
 
 .event-card h3 {
@@ -832,7 +813,7 @@ body::before {
 
 .event-card .btn {
     margin-top: 15px;
-    z-index: 2; /* Оставляем кнопки интерактивными поверх карточки */
+    z-index: 2;
     position: relative;
 }
 
@@ -843,54 +824,51 @@ body::before {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 1; /* Устанавливаем ссылку ниже кнопок */
+    z-index: 1;
 }
 
-/* Кнопки фильтра на странице событий */
 .filter-buttons {
     display: flex;
-    justify-content: flex-start; /* Выравнивание кнопок в начале строки */
-    gap: 10px; /* Расстояние между кнопками */
+    justify-content: flex-start;
+    gap: 10px;
 }
 
 .filter-buttons .btn {
-    padding: 6px 12px; /* Компактный размер кнопок */
-    font-size: 0.9rem; /* Уменьшенный шрифт */
-    border-radius: 5px; /* Легкое закругление */
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    border-radius: 5px;
 }
 
 .filter-buttons .btn:hover {
-    transform: scale(1.05); /* Легкое увеличение при наведении */
+    transform: scale(1.05);
 }
 
 .filter-buttons .btn-primary {
-    background-color: #007bff; /* Синий цвет для основного действия */
+    background-color: #007bff;
     color: #fff;
     border: none;
 }
 
 .filter-buttons .btn-primary:hover {
-    background-color: #0056b3; /* Темнее при наведении */
+    background-color: #0056b3;
 }
 
 .filter-buttons .btn-secondary {
-    background-color: #6c757d; /* Серый цвет для сброса */
+    background-color: #6c757d;
     color: #fff;
     border: none;
 }
 
 .filter-buttons .btn-secondary:hover {
-    background-color: #5a6268; /* Темнее при наведении */
+    background-color: #5a6268;
 }
 
-/* Административная панель */
 .chart-container {
-    width: 400px; /* Ширина диаграммы */
-    height: 400px; /* Высота диаграммы */
-    margin: 0 auto; /* Центрируем элемент */
+    width: 400px;
+    height: 400px;
+    margin: 0 auto;
 }
 
-/* Manage Categories */
 .btn-warning {
     background-color: #ffc107;
     color: #fff;
@@ -964,7 +942,6 @@ body::before {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Кнопка для добавления категории */
 .btn-primary {
     background-color: #007bff;
     color: white;
@@ -990,7 +967,6 @@ body::before {
     font-weight: bold;
 }
 
-/* Стили для кнопок предложений */
 .btn-success {
     background-color: #28a745;
     color: white;
@@ -1020,9 +996,8 @@ body::before {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Стили для навигации */
 .hamburger-menu {
-    display: none; /* Показывается только при необходимости */
+    display: none;
     font-size: 1.8rem;
     background: none;
     border: none;
@@ -1030,39 +1005,39 @@ body::before {
     color: #fff;
     padding: 10px;
     z-index: 10;
-    position: relative; /* Важный момент: родитель для выпадающего меню */
+    position: relative;
 }
 
 .hamburger-menu:focus {
-    outline: none; /* Убираем стандартное обводку */
+    outline: none;
 }
 
 .hamburger-menu:hover {
-    transform: scale(1.1); /* Увеличиваем размер при наведении */
-    color: #ddd; /* Меняем цвет при наведении */
+    transform: scale(1.1);
+    color: #ddd;
     transition: transform 0.2s ease, color 0.2s ease;
 }
 
 .dropdown-menu {
     display: none;
-    position: absolute; /* Меню расположено относительно ближайшего родителя с position: relative */
-    top: 50px; /* Расстояние от верхней границы кнопки гамбургера */
-    right: 10px; /* Расстояние от правой границы */
+    position: absolute;
+    top: 50px;
+    right: 10px;
     background-color: #fff;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 5px;
     overflow: hidden;
     z-index: 1000;
     width: 200px;
-    opacity: 0; /* По умолчанию меню скрыто */
-    transform: translateY(-10px); /* Смещено вверх для анимации */
-    transition: opacity 0.3s ease, transform 0.3s ease; /* Плавная анимация */
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .dropdown-menu.show {
     display: block;
-    opacity: 1; /* Делает меню видимым */
-    transform: translateY(0); /* Возвращает меню на место */
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .dropdown-menu li {
@@ -1085,13 +1060,13 @@ body::before {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    position: relative; /* Для правильного позиционирования выпадающего меню */
+    position: relative;
 }
 
 .hero-slider {
     position: relative;
     width: 100%;
-    height: 400px; /* Задаем высоту секции */
+    height: 400px;
     overflow: hidden;
     margin-bottom: 30px;
 }
@@ -1103,14 +1078,14 @@ body::before {
 }
 
 .slider-item {
-    flex: 0 0 100%; /* Каждое изображение занимает всю ширину контейнера */
+    flex: 0 0 100%;
     height: 100%;
 }
 
 .slider-item img {
     width: 100%;
     height: 100%;
-    object-fit: cover; /* Обрезаем изображение с сохранением пропорций */
+    object-fit: cover;
 }
 
 .slider-prev,
@@ -1143,23 +1118,23 @@ body::before {
 .product-gallery-container {
     position: relative;
     overflow: hidden;
-    width: 100%; /* Или задайте фиксированный размер, например, 400px */
-    max-width: 400px; /* Максимальная ширина квадрата */
-    aspect-ratio: 1 / 1; /* Соотношение сторон для квадрата */
-    margin: 0 auto; /* Центрирование контейнера */
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
 }
 
 .product-gallery-images {
     display: flex;
     transition: transform 0.5s ease;
-    height: 100%; /* Устанавливаем высоту равной контейнеру */
+    height: 100%;
 }
 
 .product-gallery-images img {
     flex: 0 0 100%;
     width: 100%;
-    height: 100%; /* Масштабируем по высоте контейнера */
-    object-fit: cover; /* Обрезаем изображение, чтобы заполнить квадрат */
+    height: 100%;
+    object-fit: cover;
 }
 
 .product-gallery-prev,
@@ -1184,16 +1159,16 @@ body::before {
 }
 
 .modal-backdrop {
-    z-index: 1040; /* Убедитесь, что это выше элементов контента */
+    z-index: 1040;
 }
 
 .modal {
-    z-index: 1050; /* Убедитесь, что это выше затемнённого фона */
+    z-index: 1050;
 }
 
 @media (max-width: 1024px) {
     .products-container {
-        grid-template-columns: repeat(3, 1fr); /* 3 колонки на среднем экране */
+        grid-template-columns: repeat(3, 1fr);
     }
 }
 
@@ -1209,6 +1184,6 @@ body::before {
 
 @media (max-width: 480px) {
     .products-container {
-        grid-template-columns: repeat(1, 1fr); /* 1 колонка на очень узком экране */
+        grid-template-columns: repeat(1, 1fr);
     }
 }

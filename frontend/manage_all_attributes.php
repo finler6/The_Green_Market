@@ -6,7 +6,6 @@ ensureRole('moderator');
 
 $title = 'Manage All Attributes';
 
-// Получение всех атрибутов
 $query = "SELECT attributes.id, attributes.name, attributes.type, attributes.is_required, categories.name AS category_name
           FROM attributes
           LEFT JOIN categories ON attributes.category_id = categories.id
@@ -22,7 +21,6 @@ ob_start();
 
 <h1 class="mb-4">Manage All Attributes</h1>
 
-<!-- Поле для поиска -->
 <div class="mb-3">
     <input type="text" id="attributeSearch" class="form-control" placeholder="Search attributes by name or category...">
 </div>

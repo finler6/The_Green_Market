@@ -48,9 +48,6 @@ function getProductAttributes($pdo, $product_id) {
     return $result;
 }
 
-
-
-// Обновленный запрос информации о продукте
 $query = "SELECT products.id, products.name, products.category_id, products.price, products.quantity, products.description, products.farmer_id, users.name AS farmer_name
           FROM products
           JOIN users ON products.farmer_id = users.id
@@ -65,19 +62,14 @@ if (!$product) {
     exit;
 }
 
-// Получение всех категорий-предков
 $categories = getCategoryAncestors($pdo, $product['category_id']);
 
-// Переворачиваем массив категорий, чтобы путь был от корневой к текущей категории
 $categories = array_reverse($categories);
 
-// Формирование строки пути категорий
 $category_path = implode(' / ', array_column($categories, 'name'));
 
-// Получение всех атрибутов для этих категорий
 $attributes = getAttributesForCategories($pdo, $categories);
 
-// Получение значений атрибутов продукта
 $product_attributes = getProductAttributes($pdo, $product_id);
 
 
@@ -87,18 +79,15 @@ $is_admin_or_moderator = in_array($role, ['admin', 'moderator']);
 $is_product_creator = $product['farmer_id'] == $user_id;
 $can_edit_product = $is_admin_or_moderator || $is_product_creator;
 
-// Fetch product images
 $images_query = "SELECT id, image_path FROM productimages WHERE product_id = :product_id";
 $images_stmt = $pdo->prepare($images_query);
 $images_stmt->execute(['product_id' => $product_id]);
 $product_images = $images_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// If no images, use placeholder
 if (empty($product_images)) {
     $product_images = [['id' => 0, 'image_path' => '../images/placeholder.png']];
 }
 
-// Запрос отзывов и средней оценки
 $reviews_query = "SELECT AVG(rating) AS average_rating, COUNT(*) AS review_count 
                   FROM reviews 
                   WHERE product_id = :product_id";
@@ -109,7 +98,6 @@ $reviews_summary = $reviews_stmt->fetch(PDO::FETCH_ASSOC);
 $average_rating = $reviews_summary['average_rating'] ? round($reviews_summary['average_rating'], 1) : 0;
 $review_count = $reviews_summary['review_count'];
 
-// Fetch all reviews
 $all_reviews_query = "
     SELECT reviews.id, reviews.rating, reviews.comment, users.id AS user_id, users.name AS user_name
     FROM reviews
@@ -123,23 +111,19 @@ $all_reviews_stmt = $pdo->prepare($all_reviews_query);
 $all_reviews_stmt->execute(['product_id' => $product_id]);
 $reviews = $all_reviews_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Получение списка категорий, отсортированных в алфавитном порядке
 $categories_query = "SELECT id, name FROM categories ORDER BY name COLLATE utf8mb4_unicode_ci";
 $categories_stmt = $pdo->prepare($categories_query);
 $categories_stmt->execute();
 $categories = $categories_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Обновление продукта (включая удаление/добавление изображений)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contentType = $_SERVER["CONTENT_TYPE"] ?? '';
 
     if (strpos($contentType, 'application/json') !== false) {
-        // JSON request
         $data = json_decode(file_get_contents('php://input'), true);
         $csrf_token = $data['csrf_token'] ?? '';
         $action = $data['action'] ?? '';
     } elseif (strpos($contentType, 'multipart/form-data') !== false) {
-        // Form data
         $csrf_token = $_POST['csrf_token'] ?? '';
         $action = $_POST['action'] ?? '';
     } else {
@@ -147,17 +131,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Проверка CSRF токена
     if ($csrf_token !== ($_SESSION['csrf_token'] ?? '')) {
         echo json_encode(['success' => false, 'error' => 'Invalid CSRF token.']);
         exit;
     }
 
     if ($action === 'delete_product' && $can_edit_product) {
-        // Начало транзакции
         $pdo->beginTransaction();
         try {
-            // Удаление изображений продукта с сервера и из базы данных
             $image_query = "SELECT image_path FROM productimages WHERE product_id = :product_id";
             $image_stmt = $pdo->prepare($image_query);
             $image_stmt->execute(['product_id' => $product_id]);
@@ -173,34 +154,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $delete_images_stmt = $pdo->prepare($delete_images_query);
             $delete_images_stmt->execute(['product_id' => $product_id]);
 
-            // Удаление отзывов, связанных с продуктом
             $delete_reviews_query = "DELETE FROM reviews WHERE product_id = :product_id";
             $delete_reviews_stmt = $pdo->prepare($delete_reviews_query);
             $delete_reviews_stmt->execute(['product_id' => $product_id]);
 
-            // Удаление продукта
             $delete_product_query = "DELETE FROM products WHERE id = :product_id";
             $delete_product_stmt = $pdo->prepare($delete_product_query);
             $delete_product_stmt->execute(['product_id' => $product_id]);
 
-            // Завершение транзакции
             $pdo->commit();
 
             echo json_encode(['success' => true]);
             exit;
         } catch (Exception $e) {
-            // Откат транзакции в случае ошибки
             $pdo->rollBack();
             echo json_encode(['success' => false, 'error' => 'Failed to delete the product.']);
             exit;
         }
     }
 
-    // Обновление информации о продукте
     if ($action === 'delete_review') {
         $review_id = (int)($data['review_id'] ?? 0);
-    
-        // Check that the review exists and belongs to the current user or the deleter is an admin or moderator
+
         $review_query = "SELECT user_id FROM reviews WHERE id = :review_id AND product_id = :product_id";
         $review_stmt = $pdo->prepare($review_query);
         $review_stmt->execute([
@@ -229,8 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $quantity = (int)$_POST['quantity'];
         $description = htmlspecialchars(trim($_POST['description']));
         $category_id = (int)$_POST['category_id'];
-    
-        // Проверка существования выбранной категории
+
         $category_exists_query = "SELECT COUNT(*) FROM categories WHERE id = :category_id";
         $category_exists_stmt = $pdo->prepare($category_exists_query);
         $category_exists_stmt->execute(['category_id' => $category_id]);
@@ -240,15 +214,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(['success' => false, 'error' => 'Invalid category selected.']);
             exit;
         }
-    
-        // Получаем введенные значения атрибутов
+
         $attributes_input = $_POST['attributes'] ?? [];
-    
-        // Получаем все необходимые атрибуты для выбранной категории
+
         $categories = getCategoryAncestors($pdo, $category_id);
         $attributes = getAttributesForCategories($pdo, $categories);
-    
-        // Проверка обязательных атрибутов
+
         $errors = [];
         foreach ($attributes as $attribute) {
             if ($attribute['is_required'] && empty($attributes_input[$attribute['id']])) {
@@ -262,10 +233,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     
         if (!empty($name) && $price > 0 && $quantity >= 0) {
-            // Начинаем транзакцию
             $pdo->beginTransaction();
             try {
-                // Обновление информации о продукте
                 $update_query = "UPDATE products SET name = :name, category_id = :category_id, price = :price, quantity = :quantity, description = :description WHERE id = :product_id";
                 $update_stmt = $pdo->prepare($update_query);
                 $update_stmt->execute([
@@ -276,16 +245,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'description' => $description,
                     'product_id' => $product_id
                 ]);
-    
-                // Удаляем старые значения атрибутов продукта
+
                 $delete_attrs_stmt = $pdo->prepare("DELETE FROM productattributes WHERE product_id = :product_id");
                 $delete_attrs_stmt->execute(['product_id' => $product_id]);
-    
-                // Вставляем новые значения атрибутов
+
                 $insert_attr_stmt = $pdo->prepare("INSERT INTO productattributes (product_id, attribute_id, value) VALUES (:product_id, :attribute_id, :value)");
                 foreach ($attributes as $attribute) {
                     $attr_id = $attribute['id'];
-                    $value = $attributes_input[$attr_id] ?? null; // Используем null, если значение отсутствует
+                    $value = $attributes_input[$attr_id] ?? null;
     
                     $insert_attr_stmt->execute([
                         'product_id' => $product_id,
@@ -293,8 +260,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'value' => $value
                     ]);
                 }
-    
-                // Загрузка новых изображений
+
                 if (!empty($_FILES['images']['name'][0])) {
                     $uploadDir = '../images/';
                     if (!is_dir($uploadDir)) {
@@ -315,14 +281,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
                 }
-    
-                // Фиксируем транзакцию
+
                 $pdo->commit();
     
                 echo json_encode(['success' => true, 'message' => 'Product updated successfully.']);
                 exit;
             } catch (Exception $e) {
-                // Откат транзакции в случае ошибки
                 $pdo->rollBack();
                 echo json_encode(['success' => false, 'error' => 'Failed to update product.']);
                 exit;
@@ -334,7 +298,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
 
-    // Удаление изображения
     if ($action === 'delete_image' && $can_edit_product) {
         $image_id = (int)($data['image_id'] ?? 0);
 
@@ -344,9 +307,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $image = $image_stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($image) {
-            // Delete image file from the server
 
-            // Delete the record from the database
             $delete_query = "DELETE FROM productimages WHERE id = :image_id";
             $delete_stmt = $pdo->prepare($delete_query);
             $delete_stmt->execute(['image_id' => $image_id]);
@@ -360,8 +321,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-
-// Генерация CSRF токена
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -373,7 +332,6 @@ ob_start();
     <div class="product-info">
         <h1 class="product-title"><?= htmlspecialchars($product['name']) ?></h1>
         <?php
-        // Получение текущей категории из пути
         $current_category = $category_path;
         if (strpos($category_path, '/') !== false) {
             $current_category = substr($category_path, strrpos($category_path, '/') + 1);
@@ -410,9 +368,7 @@ ob_start();
 
         <?php if ($product['quantity'] > 0): ?>
             <?php if ($logged_in): ?>
-                <!-- Проверяем, является ли пользователь фермером этого продукта -->
                 <?php if ($product['farmer_id'] !== $user_id): ?>
-                    <!-- Кнопка для вызова модального окна -->
                     <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addToCartModal">
                         Add to Cart
                     </button>
@@ -434,8 +390,7 @@ ob_start();
             <p class="text-danger">Out of stock</p>
         <?php endif; ?>
 
-        
-        <!-- Проверка на роль администратора или модератора -->
+
         <?php if ($can_edit_product): ?>
             <button class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#editProductModal">Edit Product</button>
             <button class="btn btn-danger mt-3" id="deleteProductButton">Delete Product</button>
@@ -466,7 +421,6 @@ ob_start();
 
 </div>
 
-<!-- Модальное окно для добавления в корзину -->
 <div class="modal fade" id="addToCartModal" tabindex="-1" aria-labelledby="addToCartModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -488,7 +442,6 @@ ob_start();
     </div>
 </div>
 
-<!-- Модальное окно для редактирования продукта -->
 <div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -498,7 +451,6 @@ ob_start();
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Поля для редактирования продукта -->
                     <div class="mb-3">
                         <label for="productName" class="form-label">Product Name</label>
                         <input type="text" class="form-control" id="productName" name="name" value="<?= htmlspecialchars($product['name']) ?>" required>
@@ -511,7 +463,6 @@ ob_start();
                         <label for="productQuantity" class="form-label">Quantity</label>
                         <input type="number" class="form-control" id="productQuantity" name="quantity" value="<?= htmlspecialchars($product['quantity']) ?>" min="0" required>
                     </div>
-                    <!-- Поле выбора категории -->
                     <div class="mb-3">
                         <label for="productCategory" class="form-label">Category</label>
                         <select class="form-control" id="productCategory" name="category_id" required>
@@ -553,7 +504,6 @@ ob_start();
                         <textarea class="form-control" id="productDescription" name="description" rows="4" required><?= htmlspecialchars($product['description']) ?></textarea>
                     </div>
 
-                    <!-- Existing images -->
                     <div class="mb-3">
                         <label class="form-label">Attached Images</label>
                         <div id="existingProductImages" class="d-flex flex-wrap">
@@ -568,18 +518,14 @@ ob_start();
                         </div>
                     </div>
 
-
-
-                    <!-- Загрузка новых изображений -->
                     <div class="mb-3">
                         <label class="form-label">Add New Images</label>
                         <div id="imageUploadArea" class="border p-3 text-center">
                             <p>Drag and drop images here or click to select files</p>
                             <input type="file" id="imageInput" name="images[]" multiple hidden>
                         </div>
-                        <!-- New Image Previews -->
                         <div id="imagePreview" class="d-flex flex-wrap mt-3">
-                            <!-- Previews will be added here by JavaScript -->
+
                         </div>
                     </div>
                 </div>
@@ -602,7 +548,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const imagePreview = document.getElementById('imagePreview');
     const existingProductImages = document.getElementById('existingProductImages');
 
-    // Drag-and-drop загрузка изображений
     imageUploadArea.addEventListener('click', () => imageInput.click());
     imageUploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -636,7 +581,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Deleting existing images
     existingProductImages.addEventListener('click', (e) => {
         if (e.target.classList.contains('delete-image-btn')) {
             const imageId = e.target.dataset.imageId;
@@ -653,7 +597,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Remove the image element from the DOM
                         e.target.parentElement.remove();
                     } else {
                         alert('Error: ' + data.error);
@@ -664,9 +607,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-
-
-    // Обработка отправки формы
     editProductForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(editProductForm);
@@ -703,7 +643,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(data => {
                     if (data.success) {
                         alert('Product deleted successfully.');
-                        window.location.href = 'index.php'; // Перенаправление на главную страницу
+                        window.location.href = 'index.php';
                     } else {
                         alert('Error: ' + data.error);
                     }
@@ -737,18 +677,17 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<!-- Отображение рейтинга и числа отзывов -->
 <div class="product-rating">
     <p>
         <strong>Average Rating:</strong> <?= $average_rating ?> / 5
         <span class="stars">
             <?php for ($i = 1; $i <= 5; $i++): ?>
                 <?php if ($i <= floor($average_rating)): ?>
-                    <i class="fa fa-star"></i> <!-- Полная звезда -->
+                    <i class="fa fa-star"></i>
                 <?php elseif ($i - $average_rating <= 0.5): ?>
-                    <i class="fa fa-star-half-alt"></i> <!-- Половина звезды -->
+                    <i class="fa fa-star-half-alt"></i>
                 <?php else: ?>
-                    <i class="fa fa-star-o"></i> <!-- Пустая звезда -->
+                    <i class="fa fa-star-o"></i>
                 <?php endif; ?>
             <?php endfor; ?>
         </span>
@@ -756,8 +695,6 @@ document.addEventListener('DOMContentLoaded', () => {
     </p>
 </div>
 
-<!-- Список отзывов -->
-<!-- Список отзывов -->
 <div class="product-reviews">
     <h2>reviews</h2>
     <?php if ($reviews): ?>
@@ -828,9 +765,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
-
-
-
 
 <?php
 $content = ob_get_clean();

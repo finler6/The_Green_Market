@@ -10,17 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-
-
-// Функция для управления уведомлениями
 function initAlerts() {
     const alerts = document.querySelectorAll('.alert');
     if (alerts.length > 0) {
         setTimeout(() => {
             alerts.forEach(alert => {
                 alert.style.transition = 'opacity 0.5s ease';
-                alert.style.opacity = '0'; // Плавное исчезновение
-                setTimeout(() => alert.remove(), 500); // Удаление после анимации
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500);
             });
         }, 5000);
     }
@@ -43,7 +40,7 @@ function initReviewModal() {
         });
     });
 }
-// Функция для работы со звёздочками рейтинга
+
 function initRatingStars() {
     const reviewModal = document.getElementById('reviewModal');
     if (reviewModal) {
@@ -125,7 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-
 function initToggleInterest() {
     document.querySelectorAll('.toggle-interest').forEach(button => {
         button.addEventListener('click', (e) => {
@@ -174,9 +170,9 @@ function initAddToCart() {
         });
     });
 }
-// Универсальная функция для добавления или удаления события из интересов
+
 function updateInterest(eventId, action) {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content'); // CSRF токен
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const currentPage = window.location.pathname.endsWith('event.php') ? 'event.php' : 'events.php';
 
     fetch(currentPage, {
@@ -222,19 +218,16 @@ function initUpdateProduct() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
     document.querySelectorAll('.product-price, .product-quantity').forEach(input => {
-        // Сохраняем начальное значение
         input.dataset.initialValue = input.value;
 
         input.addEventListener('change', () => {
             const newValue = input.value;
             const initialValue = input.dataset.initialValue;
 
-            // Проверяем, изменилось ли значение
             if (newValue !== initialValue) {
                 const field = input.classList.contains('product-price') ? 'price' : 'quantity';
                 updateProduct(input, field, csrfToken);
 
-                // Обновляем сохранённое значение после успешного обновления
                 input.dataset.initialValue = newValue;
             }
         });
@@ -246,7 +239,7 @@ function initUpdateProduct() {
 
         if (isNaN(newValue) || newValue <= 0) {
             alert('Please enter a valid value.');
-            input.value = input.dataset.initialValue; // Возвращаем к предыдущему значению
+            input.value = input.dataset.initialValue;
             return;
         }
 
@@ -263,7 +256,6 @@ function initUpdateProduct() {
     }
 }
 
-// Функция для удаления продукта
 function initDeleteProduct() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 

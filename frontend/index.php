@@ -4,15 +4,12 @@ require '../backend/db.php';
 
 $title = 'Browse Products';
 
-// Получение категорий для фильтрации
 $query = "SELECT id, name FROM categories";
 $categories = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
 
-// Фильтрация товаров
 $category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : null;
 $where_clause = $category_id ? "WHERE products.category_id = :category_id" : "";
 
-// Сортировка товаров
 $order_by = isset($_GET['order_by']) ? $_GET['order_by'] : null;
 $order_clause = "";
 if ($order_by === 'price_asc') {
@@ -28,7 +25,6 @@ if ($order_by === 'price_asc') {
         ) DESC";
 }
 
-// Формирование запроса
 $query = "SELECT products.id, products.name, categories.name AS category, products.price, products.quantity 
           FROM products
           JOIN categories ON products.category_id = categories.id
@@ -41,7 +37,6 @@ if ($category_id) {
     $stmt->execute();
 }
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-// Формирование запроса
 $query = "SELECT products.id, products.name, categories.name AS category, products.price, products.quantity, products.farmer_id
           FROM products
           JOIN categories ON products.category_id = categories.id
@@ -55,7 +50,6 @@ if ($category_id) {
 }
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Получение данных для слайдера
 $query = "
     SELECT e.id AS event_id, e.name AS event_name, ei.image_path
     FROM events e
@@ -70,7 +64,6 @@ $sliderStmt = $pdo->query($query);
 $sliderItems = $sliderStmt->fetchAll(PDO::FETCH_ASSOC);
 
 
-// Генерация контента
 ob_start();
 ?>
 <?php if (!empty($sliderItems)): ?>
@@ -109,7 +102,6 @@ ob_start();
 
 <h1 class="text-center mb-4">Browse products</h1>
 
-<!-- Форма фильтрации и сортировки -->
 <div class="row g-3 align-items-center mb-4">
     <form method="GET" action="index.php" class="row">
         <div class="col-md-5">
@@ -139,11 +131,9 @@ ob_start();
     </form>
 </div>
 
-<!-- Карточки товаров -->
 <div class="products-container">
     <?php foreach ($products as $product): ?>
         <div class="product-card">
-            <!-- Ссылка на страницу продукта -->
             <a href="product.php?id=<?= $product['id'] ?>" class="product-link">
                 <h3><?= htmlspecialchars($product['name']) ?></h3>
                 <p>Category: <?= htmlspecialchars($product['category']) ?></p>
@@ -155,7 +145,6 @@ ob_start();
                 <?php endif; ?>
             </a>
 
-            <!-- Кнопка Add to Cart -->
             <?php if (isset($_SESSION['user_role']) && $product['quantity'] > 0): ?>
                 <?php if ($_SESSION['user_role'] !== 'farmer' || $product['farmer_id'] !== $_SESSION['user_id']): ?>
                     <button type="button" class="btn btn-success btn-add-to-cart" data-bs-toggle="modal"
@@ -177,7 +166,6 @@ ob_start();
 </div>
 
 
-<!-- Модальное окно -->
 <div class="modal fade" id="addToCartModal" tabindex="-1" aria-labelledby="addToCartModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">

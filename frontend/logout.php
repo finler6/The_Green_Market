@@ -1,10 +1,8 @@
 <?php
-session_start(); // Инициализация сессии
+session_start();
 
-// Завершение сессии
-session_unset(); // Удаляет все переменные сессии
-session_destroy(); // Уничтожает сессию
+session_unset();
+session_destroy();
 
-// Перенаправление на страницу входа
 header('Location: index.php');
 exit;

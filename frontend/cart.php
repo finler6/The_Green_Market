@@ -4,11 +4,10 @@ require '../backend/db.php';
 
 $title = 'Your Shopping Cart';
 
-$cart = $_SESSION['cart'] ?? []; // Получаем корзину из сессии
+$cart = $_SESSION['cart'] ?? [];
 
 $total = 0;
 
-// Генерация контента страницы
 ob_start();
 ?>
 

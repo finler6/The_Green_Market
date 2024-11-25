@@ -3,7 +3,6 @@ session_start();
 require '../backend/db.php';
 require '../backend/auth.php';
 
-// Убедимся, что пользователь имеет роль модератора или выше
 ensureRole('moderator');
 
 
@@ -19,7 +18,6 @@ $title = 'Manage Categories';
 $success = '';
 $error = '';
 
-// Функция для построения дерева категорий
 function buildCategoryTree($categories, $parentId = null, $level = 0)
 {
     $tree = [];
@@ -33,7 +31,6 @@ function buildCategoryTree($categories, $parentId = null, $level = 0)
     return $tree;
 }
 
-// Обработка добавления новой категории
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_category'])) {
     $name = htmlspecialchars(trim($_POST['name']));
     $parent_id = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
@@ -52,11 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_category'])) {
     }
 }
 
-// Принять предложение категории
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accept_proposal'])) {
     $proposal_id = (int)$_POST['proposal_id'];
 
-    // Получаем данные предложения
     $query = "SELECT name, parent_id FROM categoryproposals WHERE id = :id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['id' => $proposal_id]);
@@ -64,12 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accept_proposal'])) {
 
     if ($proposal) {
         try {
-            // Добавляем категорию в основную таблицу
             $query = "INSERT INTO categories (name, parent_id) VALUES (:name, :parent_id)";
             $stmt = $pdo->prepare($query);
             $stmt->execute(['name' => $proposal['name'], 'parent_id' => $proposal['parent_id']]);
 
-            // Удаляем предложение
             $query = "DELETE FROM categoryproposals WHERE id = :id";
             $stmt = $pdo->prepare($query);
             $stmt->execute(['id' => $proposal_id]);
@@ -83,7 +76,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accept_proposal'])) {
     }
 }
 
-// Отклонить предложение категории
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reject_proposal'])) {
     $proposal_id = (int)$_POST['proposal_id'];
 
@@ -94,17 +86,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reject_proposal'])) {
     $success = "Proposal rejected.";
 }
 
-// Обработка добавления категории
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_category'])) {
     $category_id = (int)$_POST['category_id'];
     $new_name = htmlspecialchars(trim($_POST['new_name']));
     $new_parent_id = !empty($_POST['new_parent_id']) ? (int)$_POST['new_parent_id'] : null;
 
     try {
-        // Обновление категории и иерархии
         updateCategoryHierarchy($pdo, $category_id, $new_parent_id);
 
-        // Обновляем имя категории
         $query = "UPDATE categories SET name = :new_name WHERE id = :category_id";
         $stmt = $pdo->prepare($query);
         $stmt->execute(['new_name' => $new_name, 'category_id' => $category_id]);
@@ -115,11 +104,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_category'])) {
     }
 }
 
-// Обработка удаления категории
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_category'])) {
     $category_id = (int)$_POST['category_id'];
 
-    // Проверка на потомков
     $query = "SELECT COUNT(*) FROM categories WHERE parent_id = :category_id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['category_id' => $category_id]);
@@ -135,25 +122,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_category'])) {
     }
 }
 
-// Получение всех категорий
 $query = "SELECT id, name, parent_id FROM categories ORDER BY parent_id ASC, name ASC";
 $categories = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
 
-// Построение дерева категорий
 function updateCategoryHierarchy($pdo, $categoryId, $newParentId)
 {
-    // Обновляем текущую категорию
     $query = "UPDATE categories SET parent_id = :new_parent_id WHERE id = :category_id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['new_parent_id' => $newParentId, 'category_id' => $categoryId]);
 
-    // Находим всех дочерние категории
     $query = "SELECT id FROM categories WHERE parent_id = :category_id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['category_id' => $categoryId]);
     $children = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-    // Рекурсивно обновляем потомков
     foreach ($children as $childId) {
         updateCategoryHierarchy($pdo, $childId, $categoryId);
     }
@@ -201,8 +183,6 @@ function renderCategoryTree($tree)
     return $html;
 }
 
-// Атрибуты --------------------------
-// Добавление нового атрибута
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['type'], $_POST['category_id'])) {
     $categoryId = (int)$_POST['category_id'];
     $name = htmlspecialchars(trim($_POST['name']));
@@ -225,7 +205,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['type'
     exit;
 }
 
-// Удаление атрибута
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_attribute'])) {
     $attributeId = (int)$_POST['attribute_id'];
 
@@ -235,7 +214,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_attribute'])) 
     $success = "Attribute deleted successfully.";
 }
 
-// Редактирование атрибута
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_attribute'])) {
     $attributeId = (int)$_POST['attribute_id'];
     $name = htmlspecialchars(trim($_POST['name']));
@@ -248,7 +226,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_attribute'])) {
     $success = "Attribute updated successfully.";
 }
 
-// Удаление атрибута
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_attribute'])) {
     $attributeId = (int)$_POST['id'];
 
@@ -265,29 +242,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_attribute'])) 
 ob_start();
 ?>
     <h1 class="mb-4">Manage Categories</h1>
-    <!-- Кнопка для добавления категории -->
     <button type="button" class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
         Add New Category
     </button>
-    <!-- Кнопка для изменения атрибутов -->
     <button type="button" class="btn btn-info mb-4" onclick="location.href='manage_all_attributes.php'">
         Manage All Attributes
     </button>
-    <!-- Кнопка для просмотра предложений -->
     <button type="button" class="btn btn-secondary mb-4" data-bs-toggle="modal" data-bs-target="#reviewProposalsModal">
         Review Category Proposals
     </button>
-    <!-- Кнопка для управления заявками -->
     <button type="button" class="btn btn-success mb-4" onclick="location.href='manage_applications.php'">
         Manage Applications
     </button>
 
-    <!-- Список категорий -->
     <div class="mb-4">
         <?= renderCategoryTree($categoryTree) ?>
     </div>
 
-    <!-- Модальное окно для редактирования -->
     <div class="modal fade" id="editCategoryModal" tabindex="-1" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -320,7 +291,6 @@ ob_start();
             </div>
         </div>
     </div>
-    <!-- Модальное окно для управления атрибутами -->
     <div class="modal fade" id="manageAttributesModal" tabindex="-1" aria-labelledby="manageAttributesModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -329,14 +299,12 @@ ob_start();
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Список атрибутов -->
                     <div id="attributesContainer">
                         <ul class="list-group">
-                            <!-- Динамически заполняется через JavaScript -->
+
                         </ul>
                     </div>
                     <hr>
-                    <!-- Форма для добавления атрибута -->
                     <h6>Add New Attribute</h6>
                     <form id="addAttributeForm">
                         <input type="hidden" id="addAttributeCategoryId" name="category_id" value="">
@@ -367,7 +335,6 @@ ob_start();
             </div>
         </div>
     </div>
-    <!-- Модальное окно для добавления новой категории -->
     <div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -399,7 +366,6 @@ ob_start();
             </div>
         </div>
     </div>
-    <!-- Модальное окно для рассмотрения предложений -->
     <div class="modal fade" id="reviewProposalsModal" tabindex="-1" aria-labelledby="reviewProposalsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -409,7 +375,6 @@ ob_start();
                 </div>
                 <div class="modal-body">
                     <?php
-                    // Получение предложений категорий
                     $query = "SELECT id, name, parent_id FROM categoryproposals ORDER BY id ASC";
                     $proposals = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
                     ?>
@@ -464,7 +429,6 @@ ob_start();
             const newName = document.getElementById('newName');
             const newParentId = document.getElementById('newParentId');
 
-            // Обработчик кнопок редактирования категории
             editButtons.forEach(button => {
                 button.addEventListener('click', () => {
                     editCategoryId.value = button.dataset.id;
@@ -474,7 +438,6 @@ ob_start();
                 });
             });
 
-            // Обработчик кнопок управления атрибутами
             document.querySelectorAll('.manage-attributes-btn').forEach(button => {
                 button.addEventListener('click', () => {
                     const categoryId = button.dataset.categoryId;
@@ -486,14 +449,12 @@ ob_start();
                     }
 
                     document.getElementById('categoryName').textContent = categoryName;
-                    document.getElementById('addAttributeCategoryId').value = categoryId; // Устанавливаем значение скрытого поля
+                    document.getElementById('addAttributeCategoryId').value = categoryId;
 
-                    // Загрузка атрибутов категории
                     fetchAttributes(categoryId);
                 });
             });
 
-            // Функция загрузки атрибутов категории
             const fetchAttributes = (categoryId) => {
                 const attributesContainer = document.getElementById('attributesContainer');
                 fetch(`manage_attributes.php?category_id=${categoryId}`)
@@ -518,7 +479,7 @@ ob_start();
                             `;
                             });
                             attributesContainer.innerHTML += '</ul>';
-                            addDeleteHandlers(categoryId); // Добавляем обработчики для удаления атрибутов
+                            addDeleteHandlers(categoryId);
                         } else {
                             attributesContainer.innerHTML = '<p class="text-muted">No attributes for this category.</p>';
                         }
@@ -526,14 +487,12 @@ ob_start();
                     .catch(error => console.error('Error fetching attributes:', error));
             };
 
-            // Обработчик формы добавления атрибута
             const addAttributeForm = document.getElementById('addAttributeForm');
             addAttributeForm.addEventListener('submit', (event) => {
                 event.preventDefault();
 
                 const formData = new FormData(addAttributeForm);
 
-                // Отправка запроса на добавление атрибута
                 fetch('manage_attributes.php', {
                     method: 'POST',
                     body: formData,
@@ -543,7 +502,7 @@ ob_start();
                     if (data.success) {
                         addAttributeForm.reset();
                         const categoryId = document.getElementById('addAttributeCategoryId').value;
-                        fetchAttributes(categoryId); // Обновляем список атрибутов
+                        fetchAttributes(categoryId);в
                     } else {
                         alert('Failed to add attribute: ' + data.error);
                     }
@@ -552,7 +511,6 @@ ob_start();
             });
 
 
-            // Обработчик удаления атрибутов
             const addDeleteHandlers = (categoryId) => {
                 document.querySelectorAll('.delete-attribute-btn').forEach(button => {
                     button.addEventListener('click', () => {
@@ -579,7 +537,7 @@ ob_start();
                             })
                             .then(data => {
                                 if (data.success) {
-                                    fetchAttributes(categoryId); // Обновляем список атрибутов
+                                    fetchAttributes(categoryId);
                                 } else {
                                     alert('Failed to remove attribute: ' + data.error);
                                 }

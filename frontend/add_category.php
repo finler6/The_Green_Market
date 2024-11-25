@@ -2,7 +2,6 @@
 require '../backend/db.php';
 require '../backend/validation.php';
 
-//genarate CSRF token
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -23,7 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_category'])) {
     }
 }
 
-// Получение родительских категорий
 $query = "SELECT id, name FROM categories";
 $stmt = $pdo->query($query);
 $parent_categories = $stmt->fetchAll(PDO::FETCH_ASSOC);

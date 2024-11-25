@@ -4,7 +4,6 @@ require '../backend/auth.php';
 require '../backend/db.php';
 require '../backend/validation.php';
 
-// Проверяем авторизацию
 ensureLoggedIn();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['propose_category'])) {

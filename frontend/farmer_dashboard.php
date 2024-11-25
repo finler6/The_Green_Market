@@ -2,7 +2,6 @@
 session_start();
 require '../backend/db.php';
 
-// Проверка авторизации
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'farmer') {
     header('Location: login.php');
     exit;
@@ -10,7 +9,6 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'farmer') {
 
 $current_user_id = $_SESSION['user_id'];
 
-// Получение общей статистики для завершенных заказов
 $completed_orders_query = "
     SELECT COUNT(DISTINCT orders.id) AS total_completed_orders, 
            SUM(orderitems.total_price) AS total_revenue,
@@ -24,7 +22,6 @@ $stmt = $pdo->prepare($completed_orders_query);
 $stmt->execute(['farmer_id' => $current_user_id]);
 $completed_orders_stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Статистика по ожидающим заказам
 $pending_orders_query = "
     SELECT COUNT(DISTINCT orders.id) AS total_pending_orders, 
            SUM(orderitems.total_price) AS pending_revenue,
@@ -38,7 +35,6 @@ $stmt = $pdo->prepare($pending_orders_query);
 $stmt->execute(['farmer_id' => $current_user_id]);
 $pending_orders_stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Выручка по продуктам
 $product_revenue_query = "
     SELECT products.name AS product_name, 
            SUM(orderitems.quantity) AS total_quantity_sold, 
@@ -53,12 +49,10 @@ $stmt = $pdo->prepare($product_revenue_query);
 $stmt->execute(['farmer_id' => $current_user_id]);
 $product_revenue_stats = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Преобразование данных для диаграммы
 $product_names = array_column($product_revenue_stats, 'product_name');
 $product_revenues = array_column($product_revenue_stats, 'total_revenue');
 $product_quantities = array_column($product_revenue_stats, 'total_quantity_sold');
 
-// Генерация CSRF токена
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -70,7 +64,6 @@ ob_start();
 <div class="container mt-5">
     <h1>Farmer Dashboard</h1>
     <div class="row">
-        <!-- Карточки с общей статистикой -->
         <div class="col-md-4">
             <div class="card bg-success text-white mb-3">
                 <div class="card-body">
@@ -103,7 +96,6 @@ ob_start();
         </div>
     </div>
 
-    <!-- Диаграмма выручки по продуктам -->
     <?php if (!empty($product_revenues)): ?>
         <div class="row mt-4">
             <div class="col-md-6">
@@ -164,7 +156,6 @@ ob_start();
                 });
             }
 
-            // Диаграмма количества проданных товаров
             if (productNames.length > 0 && productQuantities.length > 0) {
                 const quantityCtx = document.getElementById('productQuantityChart').getContext('2d');
                 new Chart(quantityCtx, {

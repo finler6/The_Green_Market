@@ -9,12 +9,10 @@ if (!in_array($_SESSION['user_role'], ['customer', 'farmer', 'admin', 'moderator
 
 $title = 'My Orders';
 
-// Генерация CSRF токена
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Получение заказов клиента
 $query = "
     SELECT orders.id AS order_id, orders.status, orders.order_date,
            products.id AS product_id, products.name AS product_name,
@@ -30,7 +28,6 @@ $stmt = $pdo->prepare($query);
 $stmt->execute(['customer_id' => $_SESSION['user_id']]);
 $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Получение заказов, отправленных фермеру, для подтверждения/отмены
 $farmer_orders = [];
 if (in_array($_SESSION['user_role'], ['farmer', 'admin', 'moderator'])) {
     $farmer_query = "
@@ -51,10 +48,9 @@ if (in_array($_SESSION['user_role'], ['farmer', 'admin', 'moderator'])) {
     $farmer_orders = $farmer_stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Обработка подтверждения или отмены заказа фермером
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_action']) && $_SESSION['user_role'] === 'farmer') {
     $order_id = (int)$_POST['order_id'];
-    $action = $_POST['order_action']; // 'confirm' или 'cancel'
+    $action = $_POST['order_action'];
 
     if (in_array($action, ['confirm', 'cancel'])) {
         $new_status = $action === 'confirm' ? 'completed' : 'cancelled';
@@ -66,12 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_action']) && $_
         $error = 'Invalid action.';
     }
 
-    // Перезагрузка страницы
     header('Location: login.php');
     exit;
 }
 
-// Обработка добавления отзыва
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
     $csrf_token = $_POST['csrf_token'] ?? '';
     $product_id = (int)$_POST['product_id'];
@@ -81,7 +75,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
     if ($csrf_token !== ($_SESSION['csrf_token'] ?? '')) {
         $error = "Invalid CSRF token.";
     } elseif ($product_id > 0 && $rating >= 1 && $rating <= 5 && !empty($comment)) {
-        // Проверяем, оставлял ли пользователь отзыв ранее
         $check_query = "SELECT COUNT(*) FROM reviews WHERE product_id = :product_id AND user_id = :user_id";
         $check_stmt = $pdo->prepare($check_query);
         $check_stmt->execute([
@@ -143,14 +136,12 @@ ob_start();
     <hr>
 <?php endif; ?>
 
-<!-- Обычные заказы пользователя -->
 <?php if (empty($orders)): ?>
     <p class="text-muted text-center">You have no orders yet.</p>
 <?php else: ?>
     <div class="orders-container">
         <?php
         $current_order_id = null;
-        // Получаем ID продуктов, на которые пользователь уже оставил отзывы
         $reviewed_products_query = "
             SELECT product_id 
             FROM reviews 
@@ -163,7 +154,7 @@ ob_start();
         <?php foreach ($orders as $order): ?>
             <?php if ($current_order_id !== $order['order_id']): ?>
                 <?php if ($current_order_id !== null): ?>
-                    </div> <!-- Закрываем предыдущий order-card -->
+                    </div>
                 <?php endif; ?>
                 <div class="order-card">
                     <h3>Order #<?= htmlspecialchars($order['order_id']) ?></h3>
@@ -190,12 +181,11 @@ ob_start();
 
             <?php $current_order_id = $order['order_id']; ?>
         <?php endforeach; ?>
-        </div> <!-- Закрываем последний order-card -->
+        </div>
     </div>
 <?php endif; ?>
 
 
-<!-- Модальное окно для оставления отзыва -->
 <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -230,7 +220,6 @@ ob_start();
     </div>
 </div>
 <script>
-    // Функция для инициализации модального окна
     function initReviewModal() {
         const reviewModal = document.getElementById('reviewModal');
         const modalProductId = document.getElementById('modalProductId');
@@ -268,7 +257,6 @@ ob_start();
         });
     }
 
-    // Инициализация модального окна при загрузке DOM
     document.addEventListener('DOMContentLoaded', initReviewModal);
 </script>
 

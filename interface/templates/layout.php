@@ -1,12 +1,10 @@
 <?php
 $role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : '';
 
-// Генерация CSRF токена
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Получение уведомлений
 $formErrors = $_SESSION['form_errors'] ?? [];
 $formData = $_SESSION['form_data'] ?? [];
 unset($_SESSION['form_errors'], $_SESSION['form_data']);
@@ -26,7 +24,6 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
 </head>
 
 <body>
-<!-- Навигация -->
 <header class="main-header">
     <nav class="navbar">
         <div class="container navbar-container">
@@ -41,10 +38,9 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                     <?php endif; ?>
                     <?php if ($_SESSION['user_role'] === 'admin'): ?>
                         <li><a href="../frontend/<?= htmlspecialchars($role) ?>_dashboard.php">Admin Panel</a></li>
-                    <?php else : ?>
+                    <?php elseif ($_SESSION['user_role'] === 'farmer'): ?>
                         <li><a href="../frontend/<?= htmlspecialchars($role) ?>_dashboard.php">Dashboard</a></li>
                     <?php endif; ?>
-                    <!-- Кнопка профиля -->
                     <li class="navbar-profile">
                         <a href="../frontend/profile.php">
                             <img src="../icons/profileIcon.png" alt="Profile" class="profile-icon">
@@ -56,7 +52,6 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                             <span class="cart-count"><?= isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'], 'quantity')) : 0 ?></span>
                         </a>
                     </li>
-                    <!-- Кнопка Logout -->
                     <li class="navbar-logout">
                         <a href="../frontend/logout.php" class="btn-primary">Logout</a>
                     </li>
@@ -69,23 +64,18 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
     </nav>
 </header>
 
-<!-- Основной контент -->
 <main class="main-content container">
     <div class="content-wrapper">
-        <!-- Уведомления -->
         <?php if (!empty($success)): ?>
             <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
         <?php endif; ?>
         <?php if (!empty($error)): ?>
             <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
-
-        <!-- Основной блок -->
         <?= $content ?? '<p>Welcome to Green Market!</p>' ?>
     </div>
 </main>
 
-<!-- Модальное окно для входа -->
 <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -94,7 +84,6 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <!-- Форма входа -->
                 <form method="POST" action="login_handler.php">
                     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                     <div class="mb-3">
@@ -163,23 +152,19 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
     </div>
 </div>
 
-<!-- Скрипт для управления модальными окнами -->
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Открытие модального окна регистрации из логина
         const registerButton = document.querySelector('[data-bs-target="#registerModal"]');
         registerButton.addEventListener('click', () => {
             const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
             if (loginModal) {
-                loginModal.hide(); // Закрываем модальное окно логина
+                loginModal.hide();
             }
 
-            // Открываем модальное окно регистрации
             const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
             registerModal.show();
         });
 
-        // Убираем блокирующий фон при закрытии всех модальных окон
         const modals = document.querySelectorAll('.modal');
         modals.forEach(modal => {
             modal.addEventListener('hidden.bs.modal', () => {
@@ -191,51 +176,13 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
     });
 </script>
 
-<!-- Подвал -->
 <footer class="footer">
     <div class="container text-center">
         <p>&copy; <?= date('Y') ?> Green Market. All rights reserved.</p>
     </div>
 </footer>
 
-<?php
-/*<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const navbarLinks = document.querySelector('.navbar-links');
-        const hamburgerMenu = document.getElementById('hamburgerMenu');
-        const dropdownMenu = document.getElementById('dropdownMenu');
-
-        function manageNavbar() {
-            const maxVisibleItems = 5; // Максимальное количество кнопок
-            const links = Array.from(navbarLinks.children);
-            const hiddenLinks = links.slice(maxVisibleItems);
-
-            dropdownMenu.innerHTML = ''; // Очищаем старые скрытые ссылки
-            hiddenLinks.forEach(link => {
-                dropdownMenu.appendChild(link); // Перемещаем их в выпадающее меню
-            });
-
-            // Показать или скрыть гамбургер
-            if (hiddenLinks.length > 0) {
-                hamburgerMenu.style.display = 'block';
-            } else {
-                hamburgerMenu.style.display = 'none';
-            }
-        }
-
-        // Показать/скрыть меню при нажатии
-        hamburgerMenu.addEventListener('click', () => {
-            dropdownMenu.classList.toggle('show'); // Добавляем класс для анимации
-        });
-
-        // Вызываем управление при загрузке страницы и изменении размера окна
-        manageNavbar();
-        window.addEventListener('resize', manageNavbar);
-    });
-</script>*/
-?>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> <!-- Bootstrap -->
-<script src="../interface/js/script.js"></script> <!-- Ваши кастомные скрипты -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../interface/js/script.js"></script>
 </body>
 </html>

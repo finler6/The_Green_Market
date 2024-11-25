@@ -2,7 +2,6 @@
 require '../backend/db.php';
 require '../backend/validation.php';
 
-//generation CSRF token
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -13,13 +12,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         die('Invalid CSRF token.');
     }
-    // Получение и валидация данных
     $name = validateString($_POST['name']);
     $email = validateEmail($_POST['email']);
     $password = trim($_POST['password']);
     $confirm_password = trim($_POST['confirm_password']);
 
-    // Валидация
     if (empty($name)) {
         $errors[] = "Name is required.";
     }
@@ -32,7 +29,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "Passwords do not match.";
     }
 
-    // Если ошибок нет, хэшируем пароль и сохраняем пользователя
     if (empty($errors)) {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         $role = 'customer';
@@ -47,7 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'role' => $role
             ]);
 
-            // Перенаправление на страницу входа
             header('Location: login.php');
             exit;
         } catch (PDOException $e) {

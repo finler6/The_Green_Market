@@ -6,12 +6,10 @@ require '../interface/templates/navigation.php';
 
 ensureRole('customer');
 
-// CSRF токен
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Обработка добавления в корзину
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart'])) {
     if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         die('Invalid CSRF token.');
@@ -35,7 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart'])) {
     }
 }
 
-// Обработка предложения категории
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['propose_category'])) {
     if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         die('Invalid CSRF token.');
@@ -54,13 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['propose_category'])) 
     }
 }
 
-// Получение списка товаров
 $query = "SELECT products.id, products.name, categories.name AS category, products.price, products.quantity, products.description
           FROM products
           JOIN categories ON products.category_id = categories.id";
 $products = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
 
-// Получение списка категорий для модального окна
 $query = "SELECT id, name FROM categories";
 $categories = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -89,7 +84,6 @@ $categories = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
     </button>
 </div>
 
-<!-- Modal для предложения категории -->
 <div class="modal fade" id="proposeCategoryModal" tabindex="-1" aria-labelledby="proposeCategoryModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -123,7 +117,6 @@ $categories = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
     </div>
 </div>
 
-<!-- Список товаров -->
 <table class="table table-striped mt-4">
     <thead>
     <tr>

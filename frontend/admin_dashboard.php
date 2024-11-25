@@ -9,15 +9,12 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Получение данных для статистики
 $total_users = $pdo->query("SELECT COUNT(*) AS total_users FROM users")->fetchColumn();
 $total_products = $pdo->query("SELECT COUNT(*) AS total_products FROM products")->fetchColumn();
 $total_orders = $pdo->query("SELECT COUNT(*) AS total_orders FROM orders")->fetchColumn();
 $total_revenue = $pdo->query("SELECT SUM(total_price) AS total_revenue FROM orders WHERE status = 'completed'")->fetchColumn();
 $pending_categories = $pdo->query("SELECT COUNT(*) AS pending_categories FROM categoryproposals WHERE status = 'pending'")->fetchColumn();
 
-// Получение данных для графиков
-// Заказы по месяцам
 $monthly_orders_query = $pdo->query("
     SELECT DATE_FORMAT(order_date, '%Y-%m') AS month, COUNT(*) AS total_orders
     FROM orders
@@ -26,7 +23,6 @@ $monthly_orders_query = $pdo->query("
 ");
 $monthly_orders = $monthly_orders_query->fetchAll(PDO::FETCH_ASSOC);
 
-// Количество пользователей по времени
 $users_by_month_query = $pdo->query("
     SELECT FLOOR((id - 1) / 100) AS month_group, COUNT(*) AS total_users
     FROM users
@@ -35,7 +31,6 @@ $users_by_month_query = $pdo->query("
 ");
 $users_by_month = $users_by_month_query->fetchAll(PDO::FETCH_ASSOC);
 
-// Данные для популярных продуктов по количеству заказов
 $popular_products_query = $pdo->query("
     SELECT products.name, COUNT(orderitems.id) AS total_orders
     FROM orderitems
@@ -46,7 +41,6 @@ $popular_products_query = $pdo->query("
 ");
 $popular_products = $popular_products_query->fetchAll(PDO::FETCH_ASSOC);
 
-// Данные для популярных продуктов по количеству товаров
 $popular_products_query_in_quantity = $pdo->query("
     SELECT products.name, SUM(orderitems.quantity) AS total_quantity
     FROM orderitems
@@ -58,7 +52,6 @@ $popular_products_query_in_quantity = $pdo->query("
 $popular_products_in_quantity = $popular_products_query_in_quantity->fetchAll(PDO::FETCH_ASSOC);
 
 
-// Обновление роли пользователя
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_role'])) {
     if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         die('Invalid CSRF token.');
@@ -72,7 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_role'])) {
     $stmt->execute(['role' => $new_role, 'id' => $user_id]);
 }
 
-// Удаление пользователя
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
     if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         die('Invalid CSRF token.');
@@ -84,7 +76,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
     $stmt->execute(['id' => $user_id]);
 }
 
-// Создание нового пользователя
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_user'])) {
     if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         die('Invalid CSRF token.');
@@ -98,7 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_user'])) {
     $stmt = $pdo->prepare($query);
     $stmt->execute(['name' => $name, 'email' => $email, 'password' => $password, 'role' => $role]);
 
-    // Перенаправление после успешного создания
     header('Location: admin_dashboard.php?tab=users');
     exit;
 }
@@ -116,17 +106,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['query'])) {
 
     $search_users = $search_users_query->fetchAll(PDO::FETCH_ASSOC);
 
-    // Отладочный вывод (удалите в продакшене)
-    if (empty($search_users)) {
-        error_log("No users found for query: $query");
-    }
-
     header('Content-Type: application/json');
     echo json_encode($search_users);
     exit;
 }
 
-// Получение списка пользователей
 $query = "SELECT id, name, email, role FROM users";
 $stmt = $pdo->query($query);
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -138,7 +122,6 @@ ob_start();
 
     <h1 class="text-center mb-4">Admin Dashboard</h1>
 
-    <!-- Вкладки для переключения -->
     <ul class="nav nav-tabs mb-4" id="dashboardTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button" role="tab" aria-controls="stats" aria-selected="true">Stats</button>
@@ -151,9 +134,7 @@ ob_start();
         </li>
     </ul>
 
-    <!-- Контент вкладок -->
     <div class="tab-content">
-        <!-- Вкладка с пользователями -->
         <div class="tab-pane fade show active" id="users" role="tabpanel" aria-labelledby="users-tab">
             <ul class="nav nav-tabs mb-4" id="userTabs" role="tablist">
                 <li class="nav-item" role="presentation">
@@ -165,7 +146,6 @@ ob_start();
             </ul>
 
             <div class="tab-content">
-                <!-- Таблица пользователей -->
                 <div class="tab-pane fade show active" id="user-list" role="tabpanel" aria-labelledby="user-list-tab">
                     <div class="mb-4">
                         <input type="text" id="searchUsers" class="form-control" placeholder="Search by email or name...">
@@ -181,12 +161,11 @@ ob_start();
                         </tr>
                         </thead>
                         <tbody>
-                            <!-- Данные будут загружаться динамически -->
+
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Создание нового пользователя -->
                 <div class="tab-pane fade" id="create-user" role="tabpanel" aria-labelledby="create-user-tab">
                     <form method="POST">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
@@ -216,7 +195,6 @@ ob_start();
                 </div>
             </div>
         </div>
-        <!-- Таблица статистики -->
         <div class="tab-pane fade show active" id="stats" role="tabpanel" aria-labelledby="stats-tab">
             <div class="row g-4">
                 <div class="col-md-3">
@@ -288,7 +266,6 @@ ob_start();
             </div>
         </div>
 
-        <!-- Графики -->
         <div class="tab-pane fade" id="charts" role="tabpanel" aria-labelledby="charts-tab">
             <div class="row g-4">
                 <div class="col-md-6">
@@ -323,13 +300,11 @@ ob_start();
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Данные для графиков
         const monthlyOrders = <?= json_encode($monthly_orders) ?>;
         const usersByMonth = <?= json_encode($users_by_month) ?>;
         const popularProducts = <?= json_encode($popular_products_in_quantity) ?>;
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        // График Monthly Orders
         new Chart(document.getElementById('monthlyOrdersChart'), {
             type: 'line',
             data: {
@@ -354,7 +329,6 @@ ob_start();
             }
         });
 
-        // График Users by Month
         new Chart(document.getElementById('usersByMonthChart'), {
             type: 'bar',
             data: {
@@ -379,7 +353,6 @@ ob_start();
             }
         });
 
-        // График Top Popular Products
         new Chart(document.getElementById('popularProductsChart'), {
             type: 'doughnut',
             data: {
@@ -416,21 +389,19 @@ ob_start();
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
-                    return response.json(); // Преобразуем в JSON
+                    return response.json();
                 })
                 .then((users) => {
                     if (!Array.isArray(users)) {
                         throw new Error('Unexpected response format');
                     }
 
-                    // Очищаем таблицу
                     const userTableBody = document.querySelector('#user-list tbody');
                     if (!userTableBody) {
                         throw new TypeError('userTableBody is null');
                     }
                     userTableBody.innerHTML = '';
 
-                    // Обновляем таблицу с пользователями
                     users.forEach((user) => {
                         const row = document.createElement('tr');
                         row.innerHTML = `

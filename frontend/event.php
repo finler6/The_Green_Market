@@ -2,7 +2,6 @@
 session_start();
 require '../backend/db.php';
 
-// Проверяем, есть ли `event_id` в параметрах
 $event_id = isset($_GET['id']) ? (int)$_GET['id'] : null;
 
 if (!$event_id) {
@@ -10,12 +9,10 @@ if (!$event_id) {
     exit;
 }
 
-// Генерация CSRF токена
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Получаем данные события
 $query = "
     SELECT events.id, events.name, events.location, events.date, events.description, 
            events.organizer_id, users.name AS organizer 
@@ -27,23 +24,19 @@ $stmt = $pdo->prepare($query);
 $stmt->execute(['event_id' => $event_id]);
 $event = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Если событие не найдено
 if (!$event) {
     $error = "Событие не найдено.";
 }
 
-// Получаем изображения события
 $image_query = "SELECT id, image_path FROM eventimages WHERE event_id = :event_id";
 $image_stmt = $pdo->prepare($image_query);
 $image_stmt->execute(['event_id' => $event_id]);
 $event_images = $image_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Если нет изображений, используем placeholder
 if (empty($event_images)) {
     $event_images = [['id' => 0, 'image_path' => 'IIS/images/placeholder.png']];
 }
 
-// Определяем статус события
 function getEventStatus($date) {
     $currentDate = date('Y-m-d');
     if ($date > $currentDate) {
@@ -57,7 +50,6 @@ function getEventStatus($date) {
 
 $event_status = getEventStatus($event['date'] ?? '');
 
-// Проверяем роли
 $logged_in = isset($_SESSION['user_id']);
 $user_id = $_SESSION['user_id'] ?? null;
 $user_role = $_SESSION['user_role'] ?? null;
@@ -65,10 +57,8 @@ $is_admin_or_moderator = in_array($user_role, ['admin', 'moderator']);
 $is_event_creator = $event['organizer_id'] == $user_id;
 $can_edit_event = $is_admin_or_moderator || $is_event_creator;
 
-// Инициализируем переменную $is_interested
 $is_interested = false;
 
-// Проверяем, добавлено ли событие в интересы
 if ($logged_in) {
     $query = "SELECT id FROM userinterests WHERE user_id = :user_id AND event_id = :event_id";
     $stmt = $pdo->prepare($query);
@@ -76,17 +66,14 @@ if ($logged_in) {
     $is_interested = $stmt->rowCount() > 0;
 }
 
-// Обработка AJAX-запросов для добавления/удаления интереса и обновления события
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $logged_in) {
     $contentType = $_SERVER["CONTENT_TYPE"] ?? '';
 
     if (strpos($contentType, 'application/json') !== false) {
-        // Handle JSON request
         $data = json_decode(file_get_contents('php://input'), true);
         $csrf_token = $data['csrf_token'] ?? '';
         $action = $data['action'] ?? '';
     } elseif (strpos($contentType, 'multipart/form-data') !== false) {
-        // Handle form data
         $csrf_token = $_POST['csrf_token'] ?? '';
         $action = $_POST['action'] ?? '';
     } else {
@@ -94,14 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $logged_in) {
         exit;
     }
 
-    // Verify CSRF token
     if ($csrf_token !== ($_SESSION['csrf_token'] ?? '')) {
         echo json_encode(['success' => false, 'error' => 'Invalid CSRF token.']);
         exit;
     }
 
     if ($action === 'add' || $action === 'remove') {
-        // Handle add/remove interest
         $event_id = (int)($data['event_id'] ?? 0);
 
         if ($action === 'add') {
@@ -120,63 +105,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $logged_in) {
             exit;
         }
     } elseif ($action === 'delete_event' && $can_edit_event) {
-        // Начинаем транзакцию
         $pdo->beginTransaction();
         try {
-            // Удаляем связанные изображения
             $image_query = "SELECT image_path FROM eventimages WHERE event_id = :event_id";
             $image_stmt = $pdo->prepare($image_query);
             $image_stmt->execute(['event_id' => $event_id]);
             $images = $image_stmt->fetchAll(PDO::FETCH_ASSOC);
 
             foreach ($images as $image) {
-                $filePath = '..' . $image['image_path']; // Преобразуем URL-путь в файловый путь
+                $filePath = '..' . $image['image_path'];
                 if (file_exists($filePath)) {
                     unlink($filePath);
                 }
             }
 
-            // Удаляем записи об изображениях из базы данных
             $delete_images_query = "DELETE FROM eventimages WHERE event_id = :event_id";
             $delete_images_stmt = $pdo->prepare($delete_images_query);
             $delete_images_stmt->execute(['event_id' => $event_id]);
 
 
-            // Удаляем записи из userinterests
             $delete_interests_query = "DELETE FROM userinterests WHERE event_id = :event_id";
             $delete_interests_stmt = $pdo->prepare($delete_interests_query);
             $delete_interests_stmt->execute(['event_id' => $event_id]);
 
-            // Удаляем само событие
             $delete_event_query = "DELETE FROM events WHERE id = :event_id";
             $delete_event_stmt = $pdo->prepare($delete_event_query);
             $delete_event_stmt->execute(['event_id' => $event_id]);
 
-            // Фиксируем транзакцию
             $pdo->commit();
 
             echo json_encode(['success' => true]);
             exit;
         } catch (Exception $e) {
-            // Откатываем транзакцию в случае ошибки
             $pdo->rollBack();
             echo json_encode(['success' => false, 'error' => 'Failed to delete the event.']);
             exit;
         }
     } elseif ($action === 'update_event' && $can_edit_event) {
-        // Handle event update
         $name = trim($_POST['name'] ?? '');
         $location = trim($_POST['location'] ?? '');
         $date = trim($_POST['date'] ?? '');
         $description = trim($_POST['description'] ?? '');
 
-        // Validate input data
         if (empty($name) || empty($location) || empty($date)) {
             echo json_encode(['success' => false, 'error' => 'All fields are required.']);
             exit;
         }
 
-        // Update event in database
         $update_query = "UPDATE events SET name = :name, location = :location, date = :date, description = :description WHERE id = :event_id";
         $update_stmt = $pdo->prepare($update_query);
         $update_stmt->execute([
@@ -187,7 +162,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $logged_in) {
             'event_id' => $event_id
         ]);
 
-        // Handle image uploads
         if (!empty($_FILES['images']['name'][0])) {
             $uploadDir = '../images/';
             $uploadDirURL = '/images/'; 
@@ -201,9 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $logged_in) {
                 $targetFilePath = $uploadDir . $uniqueFileName;
                 $imageURL = $uploadDirURL . $uniqueFileName;         
 
-                // Check and move file
                 if (move_uploaded_file($tmpName, $targetFilePath)) {
-                    // Save image path in database
                     $insertImageQuery = "INSERT INTO eventimages (event_id, image_path) VALUES (:event_id, :image_path)";
                     $insertImageStmt = $pdo->prepare($insertImageQuery);
                     $insertImageStmt->execute([
@@ -217,22 +189,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $logged_in) {
         echo json_encode(['success' => true, 'message' => 'Event updated.']);
         exit;
     } elseif ($action === 'delete_image' && $can_edit_event) {
-        // Handle image deletion
         $image_id = (int)($data['image_id'] ?? 0);
 
-        // Get image path
         $image_query = "SELECT image_path FROM eventimages WHERE id = :image_id AND event_id = :event_id";
         $image_stmt = $pdo->prepare($image_query);
         $image_stmt->execute(['image_id' => $image_id, 'event_id' => $event_id]);
         $image = $image_stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($image) {
-            // Delete image file
             $filePath = '..' . $image['image_path']; 
             if (file_exists($filePath)) {
                 unlink($filePath);
             }
-            // Delete record from database
             $delete_query = "DELETE FROM eventimages WHERE id = :image_id";
             $delete_stmt = $pdo->prepare($delete_query);
             $delete_stmt->execute(['image_id' => $image_id]);
@@ -257,7 +225,6 @@ ob_start();
 <?php if (isset($error)): ?>
     <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
 <?php else: ?>
-    <!-- Hero-секция слайдера -->
     <div class="hero-slider">
         <div class="slider-container">
             <?php foreach ($event_images as $image): ?>
@@ -314,7 +281,6 @@ ob_start();
     </div>
 <?php endif; ?>
 
-<!-- Модальное окно для редактирования -->
 <?php if ($can_edit_event): ?>
 <div class="modal fade" id="editEventModal" tabindex="-1" aria-labelledby="editEventModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
@@ -325,7 +291,6 @@ ob_start();
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <!-- Event details fields -->
           <div class="mb-3">
             <label for="eventName" class="form-label">Event Name</label>
             <input type="text" class="form-control" id="eventName" name="name" value="<?= htmlspecialchars($event['name']) ?>" required>
@@ -343,7 +308,6 @@ ob_start();
             <textarea class="form-control" id="eventDescription" name="description" rows="4"><?= htmlspecialchars($event['description']) ?></textarea>
           </div>
 
-          <!-- Existing images -->
           <div class="mb-3">
             <label class="form-label">Attached Images</label>
             <div id="existingImages" class="d-flex flex-wrap">
@@ -358,7 +322,6 @@ ob_start();
             </div>
           </div>
 
-          <!-- Image upload area -->
           <div class="mb-3">
             <label class="form-label">Add Images</label>
             <div id="imageUploadArea" class="border p-3 text-center">
@@ -366,7 +329,6 @@ ob_start();
               <input type="file" id="imageInput" name="images[]" multiple hidden>
             </div>
             <div id="imagePreview" class="d-flex flex-wrap mt-3">
-              <!-- Preview of new images -->
             </div>
           </div>
         </div>
@@ -391,7 +353,7 @@ ob_start();
         let currentIndex = 0;
 
         function updateSlider() {
-            const offset = -currentIndex * 100; // Смещение контейнера
+            const offset = -currentIndex * 100;
             sliderContainer.style.transform = `translateX(${offset}%)`;
         }
 
@@ -415,7 +377,6 @@ ob_start();
     const imagePreview = document.getElementById('imagePreview');
     const existingImages = document.getElementById('existingImages');
 
-    // Handle drag and drop
     imageUploadArea.addEventListener('click', () => imageInput.click());
     imageUploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -449,7 +410,6 @@ ob_start();
         }
     }
 
-    // Handle form submission
     editEventForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(editEventForm);
@@ -470,7 +430,6 @@ ob_start();
         .catch(error => console.error('Error:', error));
     });
 
-    // Handle image deletion in modal
     existingImages.addEventListener('click', (e) => {
         if (e.target.classList.contains('delete-image-btn')) {
             const imageId = e.target.dataset.imageId;
@@ -513,7 +472,7 @@ ob_start();
                 .then(data => {
                     if (data.success) {
                         alert('Event deleted successfully.');
-                        window.location.href = 'events.php'; // Перенаправление на страницу со списком событий
+                        window.location.href = 'events.php';
                     } else {
                         alert('Error: ' + data.error);
                     }

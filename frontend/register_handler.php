@@ -51,7 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Передача ошибок через сессию
     $_SESSION['form_errors'] = $errors;
     $_SESSION['form_data'] = ['name' => $name, 'email' => $email];
     header('Location: index.php');

@@ -11,7 +11,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Получение информации о продукте
     $query = "SELECT id, name, price, quantity AS stock FROM products WHERE id = :product_id";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['product_id' => $product_id]);
@@ -23,7 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Добавление в корзину
     if (!isset($_SESSION['cart'][$product_id])) {
         $_SESSION['cart'][$product_id] = [
             'name' => $product['name'],

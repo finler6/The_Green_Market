@@ -2,7 +2,6 @@
 session_start();
 require '../backend/db.php';
 
-// Проверяем авторизацию и роль
 if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['customer', 'farmer', 'admin', 'moderator'])) {
     header('Location: login.php');
     exit;
@@ -10,14 +9,13 @@ if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['custom
 
 $title = 'Checkout';
 $customer_id = $_SESSION['user_id'];
-$cart = $_SESSION['cart'] ?? []; // Получаем корзину из сессии
+$cart = $_SESSION['cart'] ?? [];
 
 if (empty($cart)) {
     header('Location: cart.php');
-    exit; // Если корзина пуста, перенаправляем на корзину
+    exit;
 }
 
-// Генерация CSRF токена
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -26,7 +24,6 @@ $products = [];
 $errors = [];
 $total = 0;
 
-// Проверяем товары в корзине
 if (!empty($cart)) {
     $placeholders = implode(',', array_fill(0, count($cart), '?'));
     $query = "SELECT id, name, price, quantity FROM products WHERE id IN ($placeholders)";
@@ -35,25 +32,23 @@ if (!empty($cart)) {
     $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Обрабатываем отправку заказа
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         die('Invalid CSRF token.');
     }
 
     $order_items = [];
-    $total_price = 0; // Переменная для хранения общей суммы заказа
+    $total_price = 0;
 
     foreach ($products as $product) {
         $product_id = $product['id'];
         $quantity = $cart[$product_id]['quantity'];
 
-        // Проверяем доступное количество
         if ($quantity > $product['quantity']) {
             $errors[] = "Not enough stock for product: " . htmlspecialchars($product['name']);
         } else {
             $item_total = $product['price'] * $quantity;
-            $total_price += $item_total; // Добавляем к общей сумме
+            $total_price += $item_total;
             $order_items[] = [
                 'product_id' => $product_id,
                 'quantity' => $quantity,
@@ -67,7 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         try {
             $pdo->beginTransaction();
 
-            // Создаем заказ с total_price
             $query = "INSERT INTO orders (customer_id, status, order_date, total_price) 
                       VALUES (:customer_id, 'pending', NOW(), :total_price)";
             $stmt = $pdo->prepare($query);
@@ -77,7 +71,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             ]);
             $order_id = $pdo->lastInsertId();
 
-            // Добавляем товары в OrderItems
             $query = "INSERT INTO orderitems (order_id, product_id, quantity, price_per_unit) 
                       VALUES (:order_id, :product_id, :quantity, :price_per_unit)";
             $stmt = $pdo->prepare($query);
@@ -90,7 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
                     'price_per_unit' => $item['price_per_unit']
                 ]);
 
-                // Обновляем количество товара
                 $update_query = "UPDATE products SET quantity = quantity - :quantity WHERE id = :product_id";
                 $update_stmt = $pdo->prepare($update_query);
                 $update_stmt->execute([
@@ -101,7 +93,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
 
             $pdo->commit();
 
-            // Очищаем корзину
             unset($_SESSION['cart']);
             $_SESSION['success'] = 'Your order has been placed successfully!';
             header('Location: my_orders.php');
@@ -113,7 +104,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     }
 }
 
-// Генерация HTML
 ob_start();
 ?>
 

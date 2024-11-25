@@ -4,14 +4,13 @@ require '../backend/db.php';
 require '../backend/auth.php';
 
 $title = 'Events';
-$logged_in = isset($_SESSION['user_id']); // Проверяем, авторизован ли пользователь
+$logged_in = isset($_SESSION['user_id']);
 $user_role = $_SESSION['user_role'] ?? '';
 $is_admin_or_moderator = in_array($user_role, ['admin', 'moderator']);
 $is_farmer_or_higher = $is_admin_or_moderator || $user_role === 'farmer';
 
 $interested_events = [];
 
-// Проверяем, авторизован ли пользователь
 if ($logged_in) {
     $is_interested_query = "SELECT event_id FROM userinterests WHERE user_id = :user_id";
     $is_interested_stmt = $pdo->prepare($is_interested_query);
@@ -19,13 +18,10 @@ if ($logged_in) {
     $interested_events = $is_interested_stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
-
-// Генерация CSRF токена
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Добавление нового события
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_event']) && $is_farmer_or_higher) {
     if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         die('Invalid CSRF token.');
@@ -45,11 +41,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_event']) && $is_f
     }
 }
 
-// Удаление события
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_event']) && $is_farmer_or_higher) {
     $event_id = (int)$_POST['event_id'];
 
-    // Удаление только для своих событий или для админов/модераторов
     $query = $is_admin_or_moderator
         ? "DELETE FROM events WHERE id = :event_id"
         : "DELETE FROM events WHERE id = :event_id AND organizer_id = :organizer_id";
@@ -66,7 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_event']) && $i
     }
 }
 
-// Добавление события в интересы
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_interests']) && $logged_in) {
     $event_id = (int)$_POST['event_id'];
 
@@ -75,7 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_interests']) &
     $stmt->execute(['user_id' => $_SESSION['user_id'], 'event_id' => $event_id]);
 }
 
-// Удаление события из интересов
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_from_interests']) && $logged_in) {
     $event_id = (int)$_POST['event_id'];
 
@@ -84,14 +76,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_from_interests
     $stmt->execute(['user_id' => $_SESSION['user_id'], 'event_id' => $event_id]);
 }
 
-// Обновление события
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_event']) && $is_farmer_or_higher) {
     $event_id = (int)$_POST['event_id'];
     $name = htmlspecialchars(trim($_POST['name']));
     $location = htmlspecialchars(trim($_POST['location']));
     $date = $_POST['date'];
 
-    // Изменение только своих событий или любых событий для админов/модераторов
     $query = $is_admin_or_moderator
         ? "UPDATE events SET name = :name, location = :location, date = :date WHERE id = :event_id"
         : "UPDATE events SET name = :name, location = :location, date = :date WHERE id = :event_id AND organizer_id = :organizer_id";
@@ -108,7 +98,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_event']) && $is_
     }
 }
 
-// Фильтрация событий
 $where_clauses = [];
 $params = [];
 if (!empty($_GET['name'])) {
@@ -128,13 +117,11 @@ $where_clause = $where_clauses ? "WHERE " . implode(" AND ", $where_clauses) : "
 $filter = $_GET['filter'] ?? null;
 
 if ($filter === 'my_events') {
-    // Фильтрация только для событий текущего пользователя
     $where_clauses[] = "Events.organizer_id = :user_id";
     $params['user_id'] = $_SESSION['user_id'];
 }
 
 if ($filter === 'my_interests') {
-    // Фильтрация для интересов текущего пользователя
     $query = "SELECT events.id, events.name, events.location, events.date, events.organizer_id, users.name AS organizer 
               FROM userinterests
               JOIN events ON userinterests.event_id = events.id
@@ -144,7 +131,6 @@ if ($filter === 'my_interests') {
     $stmt->execute(['user_id' => $_SESSION['user_id']]);
     $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
-    // Обычный запрос всех событий с фильтрацией
     $where_clause = $where_clauses ? "WHERE " . implode(" AND ", $where_clauses) : "";
     $query = "SELECT events.id, events.name, events.location, events.date, events.organizer_id, users.name AS organizer 
               FROM events
@@ -156,7 +142,6 @@ if ($filter === 'my_interests') {
 }
 
 
-// Определение статуса события
 function getEventStatus($date) {
     $currentDate = date('Y-m-d');
     if ($date > $currentDate) {
@@ -171,7 +156,6 @@ function getEventStatus($date) {
 ob_start();
 ?>
 <?php if ($is_farmer_or_higher): ?>
-    <!-- Кнопка для добавления нового события -->
     <button type="button" class="btn btn-primary mt-4" data-bs-toggle="modal" data-bs-target="#addEventModal">
         Create New Event
     </button>
@@ -191,30 +175,25 @@ ob_start();
 <?php endif; ?>
 
 
-    <!-- Форма фильтрации -->
     <form method="GET" action="events.php" class="mb-4">
         <div class="row g-3 align-items-center">
-            <!-- Поле для ввода названия события -->
             <div class="col-md-3">
                 <label for="name" class="form-label fw-bold">Event Name</label>
                 <input type="text" id="name" name="name" class="form-control"
                        placeholder="Enter event name"
                        value="<?= htmlspecialchars($_GET['name'] ?? '') ?>">
             </div>
-            <!-- Поле для ввода местоположения события -->
             <div class="col-md-3">
                 <label for="location" class="form-label fw-bold">Location</label>
                 <input type="text" id="location" name="location" class="form-control"
                        placeholder="Enter location"
                        value="<?= htmlspecialchars($_GET['location'] ?? '') ?>">
             </div>
-            <!-- Поле для выбора даты события -->
             <div class="col-md-3">
                 <label for="date" class="form-label fw-bold">Date</label>
                 <input type="date" id="date" name="date" class="form-control"
                        value="<?= htmlspecialchars($_GET['date'] ?? '') ?>">
             </div>
-            <!-- Кнопки управления -->
             <div class="col-md-3 d-flex align-items-center justify-content-end">
                 <button type="submit" class="btn btn-primary me-2 btn-filter">Filter</button>
                 <a href="events.php" class="btn btn-secondary btn-filter">Reset</a>
@@ -222,7 +201,6 @@ ob_start();
         </div>
     </form>
 
-    <!-- Список событий -->
     <div class="events-container">
         <?php foreach ($events as $event):
             $is_interested = $logged_in && in_array($event['id'], $interested_events);?>
@@ -265,7 +243,6 @@ ob_start();
         <?php endforeach; ?>
     </div>
 
-    <!-- Модальное окно для добавления события -->
     <div class="modal fade" id="addEventModal" tabindex="-1" aria-labelledby="addEventModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -298,7 +275,6 @@ ob_start();
         </div>
     </div>
 
-    <!-- Модальное окно для редактирования события -->
     <div class="modal fade" id="editEventModal" tabindex="-1" aria-labelledby="editEventModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
