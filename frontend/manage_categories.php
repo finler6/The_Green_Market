@@ -6,6 +6,15 @@ require '../backend/auth.php';
 // Убедимся, что пользователь имеет роль модератора или выше
 ensureRole('moderator');
 
+
+function getCategoryName($pdo, $categoryId) {
+    $query = "SELECT name FROM categories WHERE id = :id";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute(['id' => $categoryId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $result ? $result['name'] : 'Unknown';
+}
+
 $title = 'Manage Categories';
 $success = '';
 $error = '';
@@ -268,6 +277,11 @@ ob_start();
     <button type="button" class="btn btn-secondary mb-4" data-bs-toggle="modal" data-bs-target="#reviewProposalsModal">
         Review Category Proposals
     </button>
+    <!-- Кнопка для управления заявками -->
+    <button type="button" class="btn btn-success mb-4" onclick="location.href='manage_applications.php'">
+        Manage Applications
+    </button>
+
     <!-- Список категорий -->
     <div class="mb-4">
         <?= renderCategoryTree($categoryTree) ?>
@@ -325,6 +339,7 @@ ob_start();
                     <!-- Форма для добавления атрибута -->
                     <h6>Add New Attribute</h6>
                     <form id="addAttributeForm">
+                        <input type="hidden" id="addAttributeCategoryId" name="category_id" value="">
                         <div class="row">
                             <div class="col-md-4">
                                 <input type="text" name="name" class="form-control" placeholder="Attribute Name" required>
@@ -464,7 +479,6 @@ ob_start();
                 button.addEventListener('click', () => {
                     const categoryId = button.dataset.categoryId;
                     const categoryName = button.dataset.categoryName;
-                    const attributesContainer = document.getElementById('attributesContainer');
 
                     if (!categoryId) {
                         console.error('Category ID is missing.');
@@ -472,6 +486,7 @@ ob_start();
                     }
 
                     document.getElementById('categoryName').textContent = categoryName;
+                    document.getElementById('addAttributeCategoryId').value = categoryId; // Устанавливаем значение скрытого поля
 
                     // Загрузка атрибутов категории
                     fetchAttributes(categoryId);
@@ -517,25 +532,25 @@ ob_start();
                 event.preventDefault();
 
                 const formData = new FormData(addAttributeForm);
-                const categoryId = document.querySelector('.manage-attributes-btn[data-category-id]').dataset.categoryId;
-                formData.append('category_id', categoryId);
 
                 // Отправка запроса на добавление атрибута
                 fetch('manage_attributes.php', {
                     method: 'POST',
                     body: formData,
                 })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            addAttributeForm.reset();
-                            fetchAttributes(categoryId); // Обновляем список атрибутов
-                        } else {
-                            alert('Failed to add attribute: ' + data.error);
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        addAttributeForm.reset();
+                        const categoryId = document.getElementById('addAttributeCategoryId').value;
+                        fetchAttributes(categoryId); // Обновляем список атрибутов
+                    } else {
+                        alert('Failed to add attribute: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
             });
+
 
             // Обработчик удаления атрибутов
             const addDeleteHandlers = (categoryId) => {
@@ -556,20 +571,20 @@ ob_start();
                                 },
                                 body: `action=delete_attribute&id=${attributeId}`,
                             })
-                                .then(response => {
-                                    if (!response.ok) {
-                                        throw new Error(`HTTP error! Status: ${response.status}`);
-                                    }
-                                    return response.json();
-                                })
-                                .then(data => {
-                                    if (data.success) {
-                                        fetchAttributes(categoryId); // Обновляем список атрибутов
-                                    } else {
-                                        alert('Failed to remove attribute: ' + data.error);
-                                    }
-                                })
-                                .catch(error => console.error('Error removing attribute:', error));
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error(`HTTP error! Status: ${response.status}`);
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.success) {
+                                    fetchAttributes(categoryId); // Обновляем список атрибутов
+                                } else {
+                                    alert('Failed to remove attribute: ' + data.error);
+                                }
+                            })
+                            .catch(error => console.error('Error removing attribute:', error));
                         }
                     });
                 });

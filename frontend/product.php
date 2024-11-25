@@ -2,7 +2,7 @@
 session_start();
 require '../backend/db.php';
 
-$role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : '';
+$role = $_SESSION['user_role'] ?? '';
 $product_id = isset($_GET['id']) ? (int)$_GET['id'] : null;
 
 if (!$product_id) {
@@ -10,12 +10,51 @@ if (!$product_id) {
     exit;
 }
 
-// Запрос информации о продукте
-$query = "SELECT Products.id, Products.name, Categories.name AS category, Products.price, Products.quantity, Products.description, Products.farmer_id, Users.name AS farmer_name
-          FROM Products
-          JOIN Categories ON Products.category_id = Categories.id
-          JOIN Users ON Products.farmer_id = Users.id
-          WHERE Products.id = :product_id";
+function getCategoryAncestors($pdo, $category_id) {
+    $categories = [];
+    while ($category_id) {
+        $stmt = $pdo->prepare("SELECT id, name, parent_id FROM categories WHERE id = :id");
+        $stmt->execute(['id' => $category_id]);
+        $category = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($category) {
+            $categories[] = $category;
+            $category_id = $category['parent_id'];
+        } else {
+            break;
+        }
+    }
+    return $categories;
+}
+
+function getAttributesForCategories($pdo, $categories) {
+    $category_ids = array_column($categories, 'id');
+    if (empty($category_ids)) {
+        return [];
+    }
+    $placeholders = implode(',', array_fill(0, count($category_ids), '?'));
+    $stmt = $pdo->prepare("SELECT * FROM attributes WHERE category_id IN ($placeholders)");
+    $stmt->execute($category_ids);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getProductAttributes($pdo, $product_id) {
+    $stmt = $pdo->prepare("SELECT attribute_id, value FROM productattributes WHERE product_id = :product_id");
+    $stmt->execute(['product_id' => $product_id]);
+    $attributes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $result = [];
+    foreach ($attributes as $attr) {
+        $result[$attr['attribute_id']] = $attr['value'];
+    }
+    return $result;
+}
+
+
+
+// Обновленный запрос информации о продукте
+$query = "SELECT products.id, products.name, products.category_id, products.price, products.quantity, products.description, products.farmer_id, users.name AS farmer_name
+          FROM products
+          JOIN users ON products.farmer_id = users.id
+          WHERE products.id = :product_id";
 
 $stmt = $pdo->prepare($query);
 $stmt->execute(['product_id' => $product_id]);
@@ -26,20 +65,42 @@ if (!$product) {
     exit;
 }
 
-// Запрос изображений продукта
-$images_query = "SELECT image_path FROM ProductImages WHERE product_id = :product_id";
+// Получение всех категорий-предков
+$categories = getCategoryAncestors($pdo, $product['category_id']);
+
+// Переворачиваем массив категорий, чтобы путь был от корневой к текущей категории
+$categories = array_reverse($categories);
+
+// Формирование строки пути категорий
+$category_path = implode(' / ', array_column($categories, 'name'));
+
+// Получение всех атрибутов для этих категорий
+$attributes = getAttributesForCategories($pdo, $categories);
+
+// Получение значений атрибутов продукта
+$product_attributes = getProductAttributes($pdo, $product_id);
+
+
+$user_id = $_SESSION['user_id'] ?? null;
+$logged_in = isset($_SESSION['user_id']);
+$is_admin_or_moderator = in_array($role, ['admin', 'moderator']);
+$is_product_creator = $product['farmer_id'] == $user_id;
+$can_edit_product = $is_admin_or_moderator || $is_product_creator;
+
+// Fetch product images
+$images_query = "SELECT id, image_path FROM productimages WHERE product_id = :product_id";
 $images_stmt = $pdo->prepare($images_query);
 $images_stmt->execute(['product_id' => $product_id]);
-$product_images = $images_stmt->fetchAll(PDO::FETCH_COLUMN);
+$product_images = $images_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Если нет изображений, используем placeholder
+// If no images, use placeholder
 if (empty($product_images)) {
-    $product_images = ['../images/placeholder.png'];
+    $product_images = [['id' => 0, 'image_path' => '../images/placeholder.png']];
 }
 
 // Запрос отзывов и средней оценки
 $reviews_query = "SELECT AVG(rating) AS average_rating, COUNT(*) AS review_count 
-                  FROM Reviews 
+                  FROM reviews 
                   WHERE product_id = :product_id";
 $reviews_stmt = $pdo->prepare($reviews_query);
 $reviews_stmt->execute(['product_id' => $product_id]);
@@ -48,79 +109,257 @@ $reviews_summary = $reviews_stmt->fetch(PDO::FETCH_ASSOC);
 $average_rating = $reviews_summary['average_rating'] ? round($reviews_summary['average_rating'], 1) : 0;
 $review_count = $reviews_summary['review_count'];
 
-// Получение всех отзывов
-$all_reviews_query = "SELECT Reviews.rating, Reviews.comment
-                      FROM Reviews
-                      WHERE product_id = :product_id
-                      ORDER BY Reviews.id DESC";
+// Fetch all reviews
+$all_reviews_query = "
+    SELECT reviews.id, reviews.rating, reviews.comment, users.id AS user_id, users.name AS user_name
+    FROM reviews
+    JOIN users ON reviews.user_id = users.id
+    WHERE product_id = :product_id
+    ORDER BY reviews.id DESC
+";
+
 
 $all_reviews_stmt = $pdo->prepare($all_reviews_query);
 $all_reviews_stmt->execute(['product_id' => $product_id]);
 $reviews = $all_reviews_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Обновление продукта (включая удаление/добавление изображений)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_product'])) {
-    $csrf_token = $_POST['csrf_token'] ?? '';
+// Получение списка категорий, отсортированных в алфавитном порядке
+$categories_query = "SELECT id, name FROM categories ORDER BY name COLLATE utf8mb4_unicode_ci";
+$categories_stmt = $pdo->prepare($categories_query);
+$categories_stmt->execute();
+$categories = $categories_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    if ($csrf_token !== ($_SESSION['csrf_token'] ?? '')) {
-        die('Invalid CSRF token.');
+// Обновление продукта (включая удаление/добавление изображений)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $contentType = $_SERVER["CONTENT_TYPE"] ?? '';
+
+    if (strpos($contentType, 'application/json') !== false) {
+        // JSON request
+        $data = json_decode(file_get_contents('php://input'), true);
+        $csrf_token = $data['csrf_token'] ?? '';
+        $action = $data['action'] ?? '';
+    } elseif (strpos($contentType, 'multipart/form-data') !== false) {
+        // Form data
+        $csrf_token = $_POST['csrf_token'] ?? '';
+        $action = $_POST['action'] ?? '';
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Invalid content type.']);
+        exit;
     }
 
-    $name = htmlspecialchars(trim($_POST['name']));
-    $price = (float)$_POST['price'];
-    $quantity = (int)$_POST['quantity'];
-    $description = htmlspecialchars(trim($_POST['description']));
-    $new_images = $_POST['new_images'] ?? [];
-    $delete_images = $_POST['delete_images'] ?? [];
+    // Проверка CSRF токена
+    if ($csrf_token !== ($_SESSION['csrf_token'] ?? '')) {
+        echo json_encode(['success' => false, 'error' => 'Invalid CSRF token.']);
+        exit;
+    }
 
-    if (!empty($name) && $price > 0 && $quantity >= 0) {
-        // Обновление продукта
-        $query = "UPDATE Products SET name = :name, price = :price, quantity = :quantity, description = :description WHERE id = :product_id";
-        $stmt = $pdo->prepare($query);
-        $stmt->execute([
-            'name' => $name,
-            'price' => $price,
-            'quantity' => $quantity,
-            'description' => $description,
-            'product_id' => $product_id
-        ]);
+    if ($action === 'delete_product' && $can_edit_product) {
+        // Начало транзакции
+        $pdo->beginTransaction();
+        try {
+            // Удаление изображений продукта с сервера и из базы данных
+            $image_query = "SELECT image_path FROM productimages WHERE product_id = :product_id";
+            $image_stmt = $pdo->prepare($image_query);
+            $image_stmt->execute(['product_id' => $product_id]);
+            $images = $image_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Удаление выбранных изображений
-        if (!empty($delete_images)) {
-            $delete_query = "DELETE FROM ProductImages WHERE product_id = :product_id AND image_path = :image_path";
-            $delete_stmt = $pdo->prepare($delete_query);
-            foreach ($delete_images as $image) {
-                $image_path = htmlspecialchars(trim($image));
-                $delete_stmt->execute([
-                    'product_id' => $product_id,
-                    'image_path' => $image_path,
-                ]);
-            }
-        }
-
-        // Добавление новых изображений
-        if (!empty($new_images)) {
-            $insert_query = "INSERT INTO ProductImages (product_id, image_path) VALUES (:product_id, :image_path)";
-            $insert_stmt = $pdo->prepare($insert_query);
-            foreach ($new_images as $image) {
-                $image_path = "../images/" . basename($image);
-                if (file_exists($image_path) && is_file($image_path)) { // Проверяем существование файла
-                    $insert_stmt->execute([
-                        'product_id' => $product_id,
-                        'image_path' => $image_path,
-                    ]);
-                } else {
-                    $error = "The image path '$image_path' does not exist or is not a valid file.";
+            foreach ($images as $image) {
+                if (file_exists($image['image_path'])) {
+                    unlink($image['image_path']);
                 }
             }
-        }
 
-        header("Location: product.php?id=$product_id");
-        exit;
-    } else {
-        $error = "Please fill all required fields.";
+            $delete_images_query = "DELETE FROM productimages WHERE product_id = :product_id";
+            $delete_images_stmt = $pdo->prepare($delete_images_query);
+            $delete_images_stmt->execute(['product_id' => $product_id]);
+
+            // Удаление отзывов, связанных с продуктом
+            $delete_reviews_query = "DELETE FROM reviews WHERE product_id = :product_id";
+            $delete_reviews_stmt = $pdo->prepare($delete_reviews_query);
+            $delete_reviews_stmt->execute(['product_id' => $product_id]);
+
+            // Удаление продукта
+            $delete_product_query = "DELETE FROM products WHERE id = :product_id";
+            $delete_product_stmt = $pdo->prepare($delete_product_query);
+            $delete_product_stmt->execute(['product_id' => $product_id]);
+
+            // Завершение транзакции
+            $pdo->commit();
+
+            echo json_encode(['success' => true]);
+            exit;
+        } catch (Exception $e) {
+            // Откат транзакции в случае ошибки
+            $pdo->rollBack();
+            echo json_encode(['success' => false, 'error' => 'Failed to delete the product.']);
+            exit;
+        }
+    }
+
+    // Обновление информации о продукте
+    if ($action === 'delete_review') {
+        $review_id = (int)($data['review_id'] ?? 0);
+    
+        // Check that the review exists and belongs to the current user or the deleter is an admin or moderator
+        $review_query = "SELECT user_id FROM reviews WHERE id = :review_id AND product_id = :product_id";
+        $review_stmt = $pdo->prepare($review_query);
+        $review_stmt->execute([
+            'review_id' => $review_id,
+            'product_id' => $product_id
+        ]);
+        $review = $review_stmt->fetch(PDO::FETCH_ASSOC);
+    
+        if ($review && ($is_admin_or_moderator || ($_SESSION['user_id'] == $review['user_id']))) {
+            $delete_query = "DELETE FROM reviews WHERE id = :review_id";
+            $delete_stmt = $pdo->prepare($delete_query);
+            $delete_stmt->execute(['review_id' => $review_id]);
+    
+            echo json_encode(['success' => true, 'message' => 'Review deleted successfully.']);
+            exit;
+        } else {
+            echo json_encode(['success' => false, 'error' => 'You do not have permission to delete this review.']);
+            exit;
+        }
+    }
+    
+
+    if ($action === 'update_product' && $can_edit_product) {
+        $name = htmlspecialchars(trim($_POST['name']));
+        $price = (float)$_POST['price'];
+        $quantity = (int)$_POST['quantity'];
+        $description = htmlspecialchars(trim($_POST['description']));
+        $category_id = (int)$_POST['category_id'];
+    
+        // Проверка существования выбранной категории
+        $category_exists_query = "SELECT COUNT(*) FROM categories WHERE id = :category_id";
+        $category_exists_stmt = $pdo->prepare($category_exists_query);
+        $category_exists_stmt->execute(['category_id' => $category_id]);
+        $category_exists = $category_exists_stmt->fetchColumn();
+    
+        if (!$category_exists) {
+            echo json_encode(['success' => false, 'error' => 'Invalid category selected.']);
+            exit;
+        }
+    
+        // Получаем введенные значения атрибутов
+        $attributes_input = $_POST['attributes'] ?? [];
+    
+        // Получаем все необходимые атрибуты для выбранной категории
+        $categories = getCategoryAncestors($pdo, $category_id);
+        $attributes = getAttributesForCategories($pdo, $categories);
+    
+        // Проверка обязательных атрибутов
+        $errors = [];
+        foreach ($attributes as $attribute) {
+            if ($attribute['is_required'] && empty($attributes_input[$attribute['id']])) {
+                $errors[] = 'Attribute "' . $attribute['name'] . '" is required.';
+            }
+        }
+    
+        if (!empty($errors)) {
+            echo json_encode(['success' => false, 'error' => implode(' ', $errors)]);
+            exit;
+        }
+    
+        if (!empty($name) && $price > 0 && $quantity >= 0) {
+            // Начинаем транзакцию
+            $pdo->beginTransaction();
+            try {
+                // Обновление информации о продукте
+                $update_query = "UPDATE products SET name = :name, category_id = :category_id, price = :price, quantity = :quantity, description = :description WHERE id = :product_id";
+                $update_stmt = $pdo->prepare($update_query);
+                $update_stmt->execute([
+                    'name' => $name,
+                    'category_id' => $category_id,
+                    'price' => $price,
+                    'quantity' => $quantity,
+                    'description' => $description,
+                    'product_id' => $product_id
+                ]);
+    
+                // Удаляем старые значения атрибутов продукта
+                $delete_attrs_stmt = $pdo->prepare("DELETE FROM productattributes WHERE product_id = :product_id");
+                $delete_attrs_stmt->execute(['product_id' => $product_id]);
+    
+                // Вставляем новые значения атрибутов
+                $insert_attr_stmt = $pdo->prepare("INSERT INTO productattributes (product_id, attribute_id, value) VALUES (:product_id, :attribute_id, :value)");
+                foreach ($attributes as $attribute) {
+                    $attr_id = $attribute['id'];
+                    $value = $attributes_input[$attr_id] ?? null; // Используем null, если значение отсутствует
+    
+                    $insert_attr_stmt->execute([
+                        'product_id' => $product_id,
+                        'attribute_id' => $attr_id,
+                        'value' => $value
+                    ]);
+                }
+    
+                // Загрузка новых изображений
+                if (!empty($_FILES['images']['name'][0])) {
+                    $uploadDir = '../images/';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0777, true);
+                    }
+    
+                    foreach ($_FILES['images']['tmp_name'] as $key => $tmpName) {
+                        $fileName = basename($_FILES['images']['name'][$key]);
+                        $targetFilePath = $uploadDir . $fileName;
+    
+                        if (move_uploaded_file($tmpName, $targetFilePath)) {
+                            $insertImageQuery = "INSERT INTO productimages (product_id, image_path) VALUES (:product_id, :image_path)";
+                            $insertImageStmt = $pdo->prepare($insertImageQuery);
+                            $insertImageStmt->execute([
+                                'product_id' => $product_id,
+                                'image_path' => $targetFilePath
+                            ]);
+                        }
+                    }
+                }
+    
+                // Фиксируем транзакцию
+                $pdo->commit();
+    
+                echo json_encode(['success' => true, 'message' => 'Product updated successfully.']);
+                exit;
+            } catch (Exception $e) {
+                // Откат транзакции в случае ошибки
+                $pdo->rollBack();
+                echo json_encode(['success' => false, 'error' => 'Failed to update product.']);
+                exit;
+            }
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Please fill in all required fields.']);
+            exit;
+        }
+    }
+    
+
+    // Удаление изображения
+    if ($action === 'delete_image' && $can_edit_product) {
+        $image_id = (int)($data['image_id'] ?? 0);
+
+        $image_query = "SELECT image_path FROM productimages WHERE id = :image_id AND product_id = :product_id";
+        $image_stmt = $pdo->prepare($image_query);
+        $image_stmt->execute(['image_id' => $image_id, 'product_id' => $product_id]);
+        $image = $image_stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($image) {
+            // Delete image file from the server
+
+            // Delete the record from the database
+            $delete_query = "DELETE FROM productimages WHERE id = :image_id";
+            $delete_stmt = $pdo->prepare($delete_query);
+            $delete_stmt->execute(['image_id' => $image_id]);
+
+            echo json_encode(['success' => true, 'message' => 'Image deleted successfully.']);
+            exit;
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Image not found.']);
+            exit;
+        }
     }
 }
+
 
 // Генерация CSRF токена
 if (empty($_SESSION['csrf_token'])) {
@@ -133,53 +372,98 @@ ob_start();
 <div class="product-details">
     <div class="product-info">
         <h1 class="product-title"><?= htmlspecialchars($product['name']) ?></h1>
-        <p><strong>Category:</strong> <?= htmlspecialchars($product['category']) ?></p>
+        <?php
+        // Получение текущей категории из пути
+        $current_category = $category_path;
+        if (strpos($category_path, '/') !== false) {
+            $current_category = substr($category_path, strrpos($category_path, '/') + 1);
+        }
+        ?>
+
+        <p>
+            <strong>Category:</strong>
+            <?= htmlspecialchars($current_category) ?>
+            (<?= htmlspecialchars($category_path) ?>)
+        </p>
+
+
+            <?php if (!empty($attributes)): ?>
+                <h6><strong>Attributes:</strong></h6>
+                <ul>
+                    <?php foreach ($attributes as $attribute): ?>
+                        <li>
+                            <strong><?= htmlspecialchars($attribute['name']) ?>:</strong>
+                            <?= htmlspecialchars($product_attributes[$attribute['id']] ?? 'N/A') ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
         <p><strong>Price:</strong> $<?= number_format($product['price'], 2) ?>/kg</p>
         <p><strong>Available:</strong> <?= htmlspecialchars($product['quantity']) ?> units</p>
         <p><strong>Description:</strong> <?= nl2br(htmlspecialchars($product['description'])) ?></p>
         <?php if (!empty($product['farmer_name'])): ?>
-            <p><strong>Seller:</strong> <a href="profile.php?id=<?= htmlspecialchars($product['farmer_id']) ?>"><?= htmlspecialchars($product['farmer_name']) ?></a></p>
+            <p><strong>Seller:</strong> <a href="profile.php?id=<?= htmlspecialchars($product['farmer_id']) ?>" style="text-decoration: none; color: inherit;">
+                <?= htmlspecialchars($product['farmer_name']) ?></a></p>
         <?php else: ?>
             <p><strong>Seller:</strong> Unknown</p>
         <?php endif; ?>
 
-
         <?php if ($product['quantity'] > 0): ?>
-            <!-- Проверяем, является ли пользователь фермером этого продукта -->
-            <?php if ($product['farmer_id'] !== $_SESSION['user_id']): ?>
-                <!-- Кнопка для вызова модального окна -->
-                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addToCartModal">
-                    Add to Cart
-                </button>
+            <?php if ($logged_in): ?>
+                <!-- Проверяем, является ли пользователь фермером этого продукта -->
+                <?php if ($product['farmer_id'] !== $user_id): ?>
+                    <!-- Кнопка для вызова модального окна -->
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addToCartModal">
+                        Add to Cart
+                    </button>
+                <?php else: ?>
+                    <p class="text-warning">You cannot add your own product to the cart.</p>
+                <?php endif; ?>
             <?php else: ?>
-                <p class="text-warning">You cannot add your own product to the cart.</p>
+                <p class="text-dark text-center">
+                    <span class="d-inline-block bg-light p-3 rounded shadow-sm" style="border: 1px solid #ccc; max-width: 300px;">
+                        Please
+                        <a href="#" class="btn btn-primary btn-sm text-light" style="text-decoration: none;" data-bs-toggle="modal" data-bs-target="#loginModal">
+                            Log in
+                        </a>
+                        to add products to your cart.
+                    </span>
+                </p>
             <?php endif; ?>
         <?php else: ?>
             <p class="text-danger">Out of stock</p>
         <?php endif; ?>
+
         
         <!-- Проверка на роль администратора или модератора -->
-        <?php if ((($role == 'admin') || ($role == 'moderator')) && !($role == 'customer')): ?>
+        <?php if ($can_edit_product): ?>
             <button class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#editProductModal">Edit Product</button>
+            <button class="btn btn-danger mt-3" id="deleteProductButton">Delete Product</button>
         <?php endif; ?>
+
     </div>
 
 
     <div class="product-gallery">
-        <div class="gallery-container">
-            <button class="gallery-prev">&#10094;</button>
-            <div class="gallery-images">
+        <div class="product-gallery-container">
+            <div class="product-gallery-images">
                 <?php if (!empty($product_images)): ?>
                     <?php foreach ($product_images as $image): ?>
-                        <img src="<?= htmlspecialchars($image) ?>" alt="Product Image">
+                        <img src="<?= htmlspecialchars($image['image_path']) ?>" alt="Product Image">
                     <?php endforeach; ?>
                 <?php else: ?>
                     <img src="../images/placeholder.png" alt="No Image Available" class="placeholder-image">
                 <?php endif; ?>
             </div>
-            <button class="gallery-next">&#10095;</button>
+            <?php if (count($product_images) > 1): ?>
+                <button class="product-gallery-prev">&#10094;</button>
+                <button class="product-gallery-next">&#10095;</button>
+            <?php endif; ?>
         </div>
     </div>
+
+
+
 </div>
 
 <!-- Модальное окно для добавления в корзину -->
@@ -204,73 +488,254 @@ ob_start();
     </div>
 </div>
 
-<!-- Модальное окно для редактирования -->
+<!-- Модальное окно для редактирования продукта -->
 <div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="POST" action="product.php?id=<?= $product_id ?>">
+            <form id="editProductForm" enctype="multipart/form-data">
                 <div class="modal-header">
                     <h5 class="modal-title" id="editProductModalLabel">Edit Product</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                    <!-- Поля для редактирования продукта -->
                     <div class="mb-3">
-                        <label for="name" class="form-label">Product Name</label>
-                        <input type="text" id="name" name="name" class="form-control" value="<?= htmlspecialchars($product['name']) ?>" required>
+                        <label for="productName" class="form-label">Product Name</label>
+                        <input type="text" class="form-control" id="productName" name="name" value="<?= htmlspecialchars($product['name']) ?>" required>
                     </div>
                     <div class="mb-3">
-                        <label for="price" class="form-label">Price</label>
-                        <input type="number" id="price" name="price" class="form-control" value="<?= htmlspecialchars($product['price']) ?>" step="0.01" required>
+                        <label for="productPrice" class="form-label">Price</label>
+                        <input type="number" class="form-control" id="productPrice" name="price" value="<?= htmlspecialchars($product['price']) ?>" step="0.01" required>
                     </div>
                     <div class="mb-3">
-                        <label for="quantity" class="form-label">Quantity</label>
-                        <input type="number" id="quantity" name="quantity" class="form-control" value="<?= htmlspecialchars($product['quantity']) ?>" min="0" required>
+                        <label for="productQuantity" class="form-label">Quantity</label>
+                        <input type="number" class="form-control" id="productQuantity" name="quantity" value="<?= htmlspecialchars($product['quantity']) ?>" min="0" required>
                     </div>
+                    <!-- Поле выбора категории -->
                     <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea id="description" name="description" class="form-control" rows="4" required><?= htmlspecialchars($product['description']) ?></textarea>
+                        <label for="productCategory" class="form-label">Category</label>
+                        <select class="form-control" id="productCategory" name="category_id" required>
+                            <?php foreach ($categories as $category): ?>
+                                <option value="<?= $category['id'] ?>" <?= $category['id'] == $product['category_id'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($category['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                    <div class="mb-3">
-                        <label for="current_images" class="form-label">Current Images</label>
-                        <div id="current_images">
-                            <?php foreach ($product_images as $image_path): ?>
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" name="delete_images[]" value="<?= htmlspecialchars($image_path) ?>">
-                                    <label class="form-check-label">
-                                        <img src="<?= htmlspecialchars($image_path) ?>" alt="Product Image" style="max-width: 100px;">
-                                        Remove this image
+                    <div id="attributesContainer">
+                        <?php if (!empty($attributes)): ?>
+                            <h4>Attributes</h4>
+                            <?php foreach ($attributes as $attribute): ?>
+                                <div class="mb-3">
+                                    <label for="attribute_<?= $attribute['id'] ?>" class="form-label">
+                                        <?= htmlspecialchars($attribute['name']) ?>
+                                        <?php if ($attribute['is_required']): ?><span class="text-danger">*</span><?php endif; ?>
                                     </label>
+                                    <?php
+                                    $value = $product_attributes[$attribute['id']] ?? '';
+                                    $inputType = $attribute['type'] === 'number' ? 'number' : ($attribute['type'] === 'date' ? 'date' : 'text');
+                                    ?>
+                                    <input
+                                        type="<?= $inputType ?>"
+                                        class="form-control"
+                                        id="attribute_<?= $attribute['id'] ?>"
+                                        name="attributes[<?= $attribute['id'] ?>]"
+                                        value="<?= htmlspecialchars($value) ?>"
+                                        <?= $attribute['is_required'] ? 'required' : '' ?>
+                                    >
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="productDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="productDescription" name="description" rows="4" required><?= htmlspecialchars($product['description']) ?></textarea>
+                    </div>
+
+                    <!-- Existing images -->
+                    <div class="mb-3">
+                        <label class="form-label">Attached Images</label>
+                        <div id="existingProductImages" class="d-flex flex-wrap">
+                            <?php foreach ($product_images as $image): ?>
+                                <div class="position-relative m-2">
+                                    <img src="<?= htmlspecialchars($image['image_path']) ?>" alt="Product Image" class="img-thumbnail" style="max-width: 150px;">
+                                    <?php if ($image['id'] != 0): ?>
+                                        <button type="button" class="btn btn-danger btn-sm delete-image-btn position-absolute top-0 end-0" data-image-id="<?= htmlspecialchars($image['id']) ?>">&times;</button>
+                                    <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
                         </div>
                     </div>
+
+
+
+                    <!-- Загрузка новых изображений -->
                     <div class="mb-3">
-                        <label for="new_images" class="form-label">Add New Images</label>
-                        <div id="new_images">
-                            <input type="text" class="form-control mb-2" name="new_images[]" placeholder="Enter image path">
+                        <label class="form-label">Add New Images</label>
+                        <div id="imageUploadArea" class="border p-3 text-center">
+                            <p>Drag and drop images here or click to select files</p>
+                            <input type="file" id="imageInput" name="images[]" multiple hidden>
                         </div>
-                        <button type="button" class="btn btn-secondary btn-sm" id="add_new_image">Add More</button>
+                        <!-- New Image Previews -->
+                        <div id="imagePreview" class="d-flex flex-wrap mt-3">
+                            <!-- Previews will be added here by JavaScript -->
+                        </div>
                     </div>
                 </div>
-                <script>
-                    document.getElementById('add_new_image').addEventListener('click', () => {
-                        const newInput = document.createElement('input');
-                        newInput.type = 'text';
-                        newInput.name = 'new_images[]';
-                        newInput.className = 'form-control mb-2';
-                        newInput.placeholder = 'Enter image path';
-                        document.getElementById('new_images').appendChild(newInput);
-                    });
-                </script>
                 <div class="modal-footer">
-                    <button type="submit" name="edit_product" class="btn btn-success">Save Changes</button>
+                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                    <input type="hidden" name="action" value="update_product">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const editProductForm = document.getElementById('editProductForm');
+    const imageUploadArea = document.getElementById('imageUploadArea');
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const existingProductImages = document.getElementById('existingProductImages');
+
+    // Drag-and-drop загрузка изображений
+    imageUploadArea.addEventListener('click', () => imageInput.click());
+    imageUploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        imageUploadArea.classList.add('dragover');
+    });
+    imageUploadArea.addEventListener('dragleave', () => imageUploadArea.classList.remove('dragover'));
+    imageUploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        imageUploadArea.classList.remove('dragover');
+        imageInput.files = e.dataTransfer.files;
+        previewImages();
+    });
+    imageInput.addEventListener('change', previewImages);
+
+    function previewImages() {
+        imagePreview.innerHTML = '';
+        const files = imageInput.files;
+        for (const file of files) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imgDiv = document.createElement('div');
+                imgDiv.classList.add('position-relative', 'm-2');
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.classList.add('img-thumbnail');
+                img.style.maxWidth = '150px';
+                imgDiv.appendChild(img);
+                imagePreview.appendChild(imgDiv);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Deleting existing images
+    existingProductImages.addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-image-btn')) {
+            const imageId = e.target.dataset.imageId;
+            if (confirm('Are you sure you want to delete this image?')) {
+                fetch('product.php?id=<?= $product_id ?>', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        action: 'delete_image',
+                        csrf_token: '<?= $_SESSION['csrf_token'] ?>',
+                        image_id: imageId
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove the image element from the DOM
+                        e.target.parentElement.remove();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
+    });
+
+
+
+    // Обработка отправки формы
+    editProductForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const formData = new FormData(editProductForm);
+
+        fetch('product.php?id=<?= $product_id ?>', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Product successfully updated.');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+    const deleteProductButton = document.getElementById('deleteProductButton');
+    if (deleteProductButton) {
+        deleteProductButton.addEventListener('click', () => {
+            if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+                fetch('product.php?id=<?= $product_id ?>', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'delete_product',
+                        csrf_token: '<?= $_SESSION['csrf_token'] ?>'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Product deleted successfully.');
+                        window.location.href = 'index.php'; // Перенаправление на главную страницу
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        });
+    }
+
+    const categorySelect = document.getElementById('productCategory');
+    const attributesContainer = document.getElementById('attributesContainer');
+
+    categorySelect.addEventListener('change', () => {
+        const categoryId = categorySelect.value;
+
+        fetch('get_category_attributes.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ category_id: categoryId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                attributesContainer.innerHTML = data.html;
+            } else {
+                alert('Error fetching attributes: ' + data.error);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+});
+</script>
 
 <!-- Отображение рейтинга и числа отзывов -->
 <div class="product-rating">
@@ -292,13 +757,37 @@ ob_start();
 </div>
 
 <!-- Список отзывов -->
+<!-- Список отзывов -->
 <div class="product-reviews">
-    <h2>Reviews</h2>
+    <h2>reviews</h2>
     <?php if ($reviews): ?>
         <?php foreach ($reviews as $review): ?>
-            <div class="review">
-                <p>Rating: <?= str_repeat('⭐', (int)$review['rating']) ?></p>
-                <p><?= nl2br(htmlspecialchars($review['comment'])) ?></p>
+            <div class="review d-flex justify-content-between align-items-start">
+                <div>
+                    <p>
+                        <strong>By:</strong>
+                        <?php if (isset($_SESSION['user_id'])): ?>
+                            <a href="profile.php?id=<?= htmlspecialchars($review['user_id']) ?>" style="text-decoration: none; color: inherit;">
+                                <?= htmlspecialchars($review['user_name']) ?>
+                            </a>
+                        <?php else: ?>
+                            <span style="text-decoration: none; color: inherit;">
+                                <?= htmlspecialchars($review['user_name']) ?>
+                            </span>
+                        <?php endif; ?>
+                        <strong>Rating:</strong> <?= str_repeat('⭐', (int)$review['rating']) ?>
+                    </p>
+                    <p><?= nl2br(htmlspecialchars($review['comment'])) ?></p>
+                </div>
+                <?php if ($is_admin_or_moderator || ($_SESSION['user_id'] ?? null) == $review['user_id']): ?>
+                    <button
+                        class="btn btn-danger btn-sm delete-review-btn"
+                        data-review-id="<?= htmlspecialchars($review['id']) ?>"
+                        style="margin-left: 10px;"
+                    >
+                        Delete
+                    </button>
+                <?php endif; ?>
             </div>
             <hr>
         <?php endforeach; ?>
@@ -306,6 +795,42 @@ ob_start();
         <p>No reviews yet. Be the first to leave a review!</p>
     <?php endif; ?>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.delete-review-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const reviewId = button.dataset.reviewId;
+
+            if (confirm('Are you sure you want to delete this review?')) {
+                fetch('product.php?id=<?= $product_id ?>', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'delete_review',
+                        review_id: reviewId,
+                        csrf_token: '<?= $_SESSION['csrf_token'] ?>'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Review deleted successfully.');
+                        button.closest('.review').remove();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        });
+    });
+});
+
+</script>
+
+
+
 
 <?php
 $content = ob_get_clean();

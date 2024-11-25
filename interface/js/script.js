@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initAlerts();
     initReviewModal();
     initRatingStars();
-    initGallery();
+    initProductGallery();
     initToggleInterest();
     initAddToCart();
     initUpdateProduct();
@@ -86,41 +86,45 @@ function initRatingStars() {
 }
 
 
-function initGallery() {
-    const galleryImagesContainer = document.querySelector('.gallery-images');
-    const galleryImages = galleryImagesContainer ? galleryImagesContainer.querySelectorAll('img') : [];
-    const prevButton = document.querySelector('.gallery-prev');
-    const nextButton = document.querySelector('.gallery-next');
-    let currentImageIndex = 0;
+function initProductGallery() {
+    const galleryContainers = document.querySelectorAll('.product-gallery-container');
 
-    if (galleryImages.length > 1) {
-        galleryImagesContainer.style.width = `${galleryImages.length * 100}%`;
-        galleryImages.forEach(img => {
-            img.style.width = `${100 / galleryImages.length}%`;
-            img.style.flexShrink = "0";
-        });
+    galleryContainers.forEach(galleryContainer => {
+        const galleryImagesContainer = galleryContainer.querySelector('.product-gallery-images');
+        const galleryImages = galleryImagesContainer.querySelectorAll('img');
+        const prevButton = galleryContainer.querySelector('.product-gallery-prev');
+        const nextButton = galleryContainer.querySelector('.product-gallery-next');
+        let currentImageIndex = 0;
 
-        function updateGallery() {
-            const offset = -currentImageIndex * (100 / galleryImages.length);
-            galleryImagesContainer.style.transform = `translateX(${offset}%)`;
+        if (galleryImages.length > 1) {
+            function updateGallery() {
+                const offset = -currentImageIndex * 100;
+                galleryImagesContainer.style.transform = `translateX(${offset}%)`;
+            }
+
+            prevButton.addEventListener('click', () => {
+                currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
+                updateGallery();
+            });
+
+            nextButton.addEventListener('click', () => {
+                currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
+                updateGallery();
+            });
+
+            updateGallery();
+        } else {
+            if (prevButton) prevButton.style.display = 'none';
+            if (nextButton) nextButton.style.display = 'none';
         }
-
-        prevButton.addEventListener('click', () => {
-            currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
-            updateGallery();
-        });
-
-        nextButton.addEventListener('click', () => {
-            currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
-            updateGallery();
-        });
-
-        updateGallery();
-    } else {
-        if (prevButton) prevButton.style.display = 'none';
-        if (nextButton) nextButton.style.display = 'none';
-    }
+    });
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    initProductGallery();
+});
+
+
 
 function initToggleInterest() {
     document.querySelectorAll('.toggle-interest').forEach(button => {

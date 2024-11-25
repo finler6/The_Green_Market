@@ -9,6 +9,11 @@ if (!in_array($_SESSION['user_role'], ['customer', 'farmer', 'admin', 'moderator
 
 $title = 'My Orders';
 
+// Генерация CSRF токена
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Получение заказов клиента
 $query = "
     SELECT orders.id AS order_id, orders.status, orders.order_date,
@@ -33,11 +38,11 @@ if (in_array($_SESSION['user_role'], ['farmer', 'admin', 'moderator'])) {
                products.id AS product_id, products.name AS product_name,
                orderitems.quantity, orderitems.price_per_unit,
                (orderitems.quantity * orderitems.price_per_unit) AS total_price,
-               customers.name AS customer_name
+               users.name AS customer_name
         FROM orders
         JOIN orderitems ON orders.id = orderitems.order_id
         JOIN products ON orderitems.product_id = products.id
-        JOIN users AS customers ON Orders.customer_id = customers.id
+        JOIN users ON orders.customer_id = users.id
         WHERE products.farmer_id = :farmer_id AND orders.status = 'pending'
         ORDER BY orders.order_date DESC
     ";
@@ -46,7 +51,6 @@ if (in_array($_SESSION['user_role'], ['farmer', 'admin', 'moderator'])) {
     $farmer_orders = $farmer_stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-
 // Обработка подтверждения или отмены заказа фермером
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_action']) && $_SESSION['user_role'] === 'farmer') {
     $order_id = (int)$_POST['order_id'];
@@ -54,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_action']) && $_
 
     if (in_array($action, ['confirm', 'cancel'])) {
         $new_status = $action === 'confirm' ? 'completed' : 'cancelled';
-        $update_query = "UPDATE Orders SET status = :new_status WHERE id = :order_id";
+        $update_query = "UPDATE orders SET status = :new_status WHERE id = :order_id";
         $update_stmt = $pdo->prepare($update_query);
         $update_stmt->execute(['new_status' => $new_status, 'order_id' => $order_id]);
         $success = $action === 'confirm' ? 'Order confirmed successfully!' : 'Order cancelled successfully!';
@@ -63,27 +67,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_action']) && $_
     }
 
     // Перезагрузка страницы
-    header('Location: my_orders.php');
+    header('Location: login.php');
     exit;
 }
 
-
 // Обработка добавления отзыва
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
+    $csrf_token = $_POST['csrf_token'] ?? '';
     $product_id = (int)$_POST['product_id'];
     $rating = (int)$_POST['rating'];
     $comment = trim($_POST['comment']);
 
-    if ($product_id > 0 && $rating >= 1 && $rating <= 5 && !empty($comment)) {
-        $query = "INSERT INTO Reviews (product_id, user_id, rating, comment) VALUES (:product_id, :user_id, :rating, :comment)";
-        $stmt = $pdo->prepare($query);
-        $stmt->execute([
+    if ($csrf_token !== ($_SESSION['csrf_token'] ?? '')) {
+        $error = "Invalid CSRF token.";
+    } elseif ($product_id > 0 && $rating >= 1 && $rating <= 5 && !empty($comment)) {
+        // Проверяем, оставлял ли пользователь отзыв ранее
+        $check_query = "SELECT COUNT(*) FROM reviews WHERE product_id = :product_id AND user_id = :user_id";
+        $check_stmt = $pdo->prepare($check_query);
+        $check_stmt->execute([
             'product_id' => $product_id,
             'user_id' => $_SESSION['user_id'],
-            'rating' => $rating,
-            'comment' => $comment,
         ]);
-        $success = "Review added successfully!";
+        $review_exists = $check_stmt->fetchColumn() > 0;
+
+        if ($review_exists) {
+            $error = "You have already left a review for this product.";
+        } else {
+            $query = "INSERT INTO reviews (product_id, user_id, rating, comment) VALUES (:product_id, :user_id, :rating, :comment)";
+            $stmt = $pdo->prepare($query);
+            $stmt->execute([
+                'product_id' => $product_id,
+                'user_id' => $_SESSION['user_id'],
+                'rating' => $rating,
+                'comment' => $comment,
+            ]);
+            $success = "Review added successfully!";
+        }
     } else {
         $error = "Please provide a valid rating and comment.";
     }
@@ -91,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
 
 ob_start();
 ?>
+
 <h1 class="text-center mb-4">My Orders</h1>
 
 <?php if (isset($success)): ?>
@@ -112,7 +132,7 @@ ob_start();
                 <p><strong>Quantity:</strong> <?= htmlspecialchars($order['quantity']) ?></p>
                 <p><strong>Total Price:</strong> $<?= number_format($order['total_price'], 2) ?></p>
                 <p><strong>Order Date:</strong> <?= htmlspecialchars(date('F j, Y, g:i a', strtotime($order['order_date']))) ?></p>
-                <form method="POST" action="my_orders.php">
+                <form method="POST" action="/frontend/my_orders.php">
                     <input type="hidden" name="order_id" value="<?= $order['order_id'] ?>">
                     <button type="submit" name="order_action" value="confirm" class="btn btn-success btn-sm">Confirm</button>
                     <button type="submit" name="order_action" value="cancel" class="btn btn-danger btn-sm">Cancel</button>
@@ -128,7 +148,18 @@ ob_start();
     <p class="text-muted text-center">You have no orders yet.</p>
 <?php else: ?>
     <div class="orders-container">
-        <?php $current_order_id = null; ?>
+        <?php
+        $current_order_id = null;
+        // Получаем ID продуктов, на которые пользователь уже оставил отзывы
+        $reviewed_products_query = "
+            SELECT product_id 
+            FROM reviews 
+            WHERE user_id = :user_id
+        ";
+        $reviewed_stmt = $pdo->prepare($reviewed_products_query);
+        $reviewed_stmt->execute(['user_id' => $_SESSION['user_id']]);
+        $reviewed_products = $reviewed_stmt->fetchAll(PDO::FETCH_COLUMN);
+        ?>
         <?php foreach ($orders as $order): ?>
             <?php if ($current_order_id !== $order['order_id']): ?>
                 <?php if ($current_order_id !== null): ?>
@@ -147,8 +178,14 @@ ob_start();
 
             <p>- <?= htmlspecialchars($order['product_name']) ?>: <?= htmlspecialchars($order['quantity']) ?> x $<?= number_format($order['price_per_unit'], 2) ?> = $<?= number_format($order['total_price'], 2) ?></p>
 
-            <?php if ($order['status'] === 'completed'): ?>
-                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#reviewModal" data-product-id="<?= $order['product_id'] ?>" data-product-name="<?= htmlspecialchars($order['product_name']) ?>">Leave a Review</button>
+            <?php if ($order['status'] === 'completed' && !in_array($order['product_id'], $reviewed_products)): ?>
+                <button class="btn btn-primary btn-sm leave-review-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#reviewModal"
+                        data-product-id="<?= $order['product_id'] ?>"
+                        data-product-name="<?= htmlspecialchars($order['product_name']) ?>">
+                    Leave a Review
+                </button>
             <?php endif; ?>
 
             <?php $current_order_id = $order['order_id']; ?>
@@ -156,6 +193,7 @@ ob_start();
         </div> <!-- Закрываем последний order-card -->
     </div>
 <?php endif; ?>
+
 
 <!-- Модальное окно для оставления отзыва -->
 <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
@@ -167,6 +205,7 @@ ob_start();
             </div>
             <div class="modal-body">
                 <form method="POST" action="my_orders.php">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                     <input type="hidden" name="product_id" id="modalProductId" value="">
                     <div class="mb-3">
                         <label for="rating" class="form-label">Rating</label>
@@ -190,6 +229,48 @@ ob_start();
         </div>
     </div>
 </div>
+<script>
+    // Функция для инициализации модального окна
+    function initReviewModal() {
+        const reviewModal = document.getElementById('reviewModal');
+        const modalProductId = document.getElementById('modalProductId');
+        const modalRating = document.getElementById('rating');
+        const modalComment = document.getElementById('comment');
+        const ratingStars = document.getElementById('ratingStars').querySelectorAll('.fa-star');
+
+        document.querySelectorAll('.leave-review-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                const productId = this.getAttribute('data-product-id');
+                const productName = this.getAttribute('data-product-name');
+                document.getElementById('reviewModalLabel').textContent = `Leave a Review for ${productName}`;
+                modalProductId.value = productId;
+                modalRating.value = '';
+                modalComment.value = '';
+                ratingStars.forEach(star => star.classList.remove('fa-solid', 'text-warning'));
+                ratingStars.forEach(star => star.classList.add('fa-regular'));
+            });
+        });
+
+        ratingStars.forEach(star => {
+            star.addEventListener('click', function () {
+                const ratingValue = this.getAttribute('data-value');
+                modalRating.value = ratingValue;
+                ratingStars.forEach(star => {
+                    if (star.getAttribute('data-value') <= ratingValue) {
+                        star.classList.add('fa-solid', 'text-warning');
+                        star.classList.remove('fa-regular');
+                    } else {
+                        star.classList.add('fa-regular');
+                        star.classList.remove('fa-solid', 'text-warning');
+                    }
+                });
+            });
+        });
+    }
+
+    // Инициализация модального окна при загрузке DOM
+    document.addEventListener('DOMContentLoaded', initReviewModal);
+</script>
 
 <?php
 $content = ob_get_clean();

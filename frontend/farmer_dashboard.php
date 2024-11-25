@@ -1,120 +1,207 @@
 <?php
 session_start();
 require '../backend/db.php';
-require '../interface/templates/navigation.php';
 
-// Проверка роли фермера
-if ($_SESSION['user_role'] !== 'farmer') {
+// Проверка авторизации
+if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'farmer') {
     header('Location: login.php');
     exit;
 }
 
-$farmer_id = $_SESSION['user_id'];
+$current_user_id = $_SESSION['user_id'];
 
-// Добавление товара
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
-    $name = htmlspecialchars(trim($_POST['name']));
-    $category_id = (int)$_POST['category_id'];
-    $price = (float)$_POST['price'];
-    $quantity = (int)$_POST['quantity'];
-    $description = htmlspecialchars(trim($_POST['description']));
+// Получение общей статистики для завершенных заказов
+$completed_orders_query = "
+    SELECT COUNT(DISTINCT orders.id) AS total_completed_orders, 
+           SUM(orderitems.total_price) AS total_revenue,
+           SUM(orderitems.quantity) AS total_items_sold
+    FROM orders
+    JOIN orderitems ON orders.id = orderitems.order_id
+    JOIN products ON orderitems.product_id = products.id
+    WHERE products.farmer_id = :farmer_id AND orders.status = 'completed'
+";
+$stmt = $pdo->prepare($completed_orders_query);
+$stmt->execute(['farmer_id' => $current_user_id]);
+$completed_orders_stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!empty($name) && $category_id && $price > 0 && $quantity >= 0) {
-        $query = "INSERT INTO products (name, farmer_id, category_id, price, quantity, description)
-                  VALUES (:name, :farmer_id, :category_id, :price, :quantity, :description)";
-        $stmt = $pdo->prepare($query);
-        $stmt->execute([
-            'name' => $name,
-            'farmer_id' => $_SESSION['user_id'],
-            'category_id' => $category_id,
-            'price' => $price,
-            'quantity' => $quantity,
-            'description' => $description
-        ]);
-    }
+// Статистика по ожидающим заказам
+$pending_orders_query = "
+    SELECT COUNT(DISTINCT orders.id) AS total_pending_orders, 
+           SUM(orderitems.total_price) AS pending_revenue,
+           SUM(orderitems.quantity) AS pending_items
+    FROM orders
+    JOIN orderitems ON orders.id = orderitems.order_id
+    JOIN products ON orderitems.product_id = products.id
+    WHERE products.farmer_id = :farmer_id AND orders.status = 'pending'
+";
+$stmt = $pdo->prepare($pending_orders_query);
+$stmt->execute(['farmer_id' => $current_user_id]);
+$pending_orders_stats = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Выручка по продуктам
+$product_revenue_query = "
+    SELECT products.name AS product_name, 
+           SUM(orderitems.quantity) AS total_quantity_sold, 
+           SUM(orderitems.total_price) AS total_revenue
+    FROM orderitems
+    JOIN products ON orderitems.product_id = products.id
+    JOIN orders ON orders.id = orderitems.order_id
+    WHERE products.farmer_id = :farmer_id AND orders.status = 'completed'
+    GROUP BY products.name
+";
+$stmt = $pdo->prepare($product_revenue_query);
+$stmt->execute(['farmer_id' => $current_user_id]);
+$product_revenue_stats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Преобразование данных для диаграммы
+$product_names = array_column($product_revenue_stats, 'product_name');
+$product_revenues = array_column($product_revenue_stats, 'total_revenue');
+$product_quantities = array_column($product_revenue_stats, 'total_quantity_sold');
+
+// Генерация CSRF токена
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Получение списка товаров фермера
-$query = "SELECT products.id, products.name, categories.name AS category, products.price, products.quantity, products.description
-          FROM products
-          JOIN categories ON products.category_id = categories.id
-          WHERE products.farmer_id = :farmer_id";
-$stmt = $pdo->prepare($query);
-$stmt->execute(['farmer_id' => $farmer_id]);
-$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Получение категорий для добавления товара
-$query = "SELECT id, name FROM categories";
-$categories = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
+$title = 'Farmer Dashboard';
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Farmer Dashboard</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-</head>
-<body class="container mt-5">
-<?php renderNavigation($_SESSION['user_role']); ?>
-<h1>Manage Your Products</h1>
 
-<!-- Список товаров -->
-<h2 class="mt-4">Your Products</h2>
-<table class="table table-striped">
-    <thead>
-    <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Category</th>
-        <th>Price</th>
-        <th>Quantity</th>
-        <th>Description</th>
-    </tr>
-    </thead>
-    <tbody>
-    <?php foreach ($products as $product): ?>
-        <tr>
-            <td><?= htmlspecialchars($product['id']) ?></td>
-            <td><?= htmlspecialchars($product['name']) ?></td>
-            <td><?= htmlspecialchars($product['category']) ?></td>
-            <td><?= htmlspecialchars($product['price']) ?></td>
-            <td><?= htmlspecialchars($product['quantity']) ?></td>
-            <td><?= htmlspecialchars($product['description']) ?></td>
-        </tr>
-    <?php endforeach; ?>
-    </tbody>
-</table>
+<div class="container mt-5">
+    <h1>Farmer Dashboard</h1>
+    <div class="row">
+        <!-- Карточки с общей статистикой -->
+        <div class="col-md-4">
+            <div class="card bg-success text-white mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Completed Orders</h5>
+                    <p class="card-text">
+                        <?= htmlspecialchars($completed_orders_stats['total_completed_orders'] ?? 0) ?>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary text-white mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Total Revenue</h5>
+                    <p class="card-text">
+                        $<?= number_format($completed_orders_stats['total_revenue'] ?? 0, 2) ?>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Orders</h5>
+                    <p class="card-text">
+                        <?= htmlspecialchars($pending_orders_stats['total_pending_orders'] ?? 0) ?>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<!-- Добавление товара -->
-<h2 class="mt-4">Add New Product</h2>
-<form method="POST" action="farmer_dashboard.php">
-    <div class="mb-3">
-        <label for="name" class="form-label">Product Name</label>
-        <input type="text" id="name" name="name" class="form-control" required>
-    </div>
-    <div class="mb-3">
-        <label for="category_id" class="form-label">Category</label>
-        <select id="category_id" name="category_id" class="form-select" required>
-            <option value="">Select a category</option>
-            <?php foreach ($categories as $category): ?>
-                <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name']) ?></option>
-            <?php endforeach; ?>
-        </select>
-    </div>
-    <div class="mb-3">
-        <label for="price" class="form-label">Price</label>
-        <input type="number" step="0.01" id="price" name="price" class="form-control" required>
-    </div>
-    <div class="mb-3">
-        <label for="quantity" class="form-label">Quantity</label>
-        <input type="number" id="quantity" name="quantity" class="form-control" required>
-    </div>
-    <div class="mb-3">
-        <label for="description" class="form-label">Description</label>
-        <textarea id="description" name="description" class="form-control" rows="3"></textarea>
-    </div>
-    <button type="submit" name="add_product" class="btn btn-success">Add Product</button>
-</form>
-</body>
-</html>
+    <!-- Диаграмма выручки по продуктам -->
+    <?php if (!empty($product_revenues)): ?>
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <h3>Revenue by Product</h3>
+                <canvas id="productRevenueChart" style="max-width: 400px; max-height: 400px;"></canvas>
+            </div>
+            <div class="col-md-6">
+                <h3>Quantity Sold by Product</h3>
+                <canvas id="productQuantityChart" style="max-width: 400px; max-height: 400px;"></canvas>
+            </div>
+        </div>
+    <?php else: ?>
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <p class="text-center text-muted">No revenue data available for your products.</p>
+            </div>
+        </div>
+    <?php endif; ?>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    function initProductCharts() {
+        document.addEventListener('DOMContentLoaded', function () {
+            const productNames = <?= json_encode($product_names) ?>;
+            const productRevenues = <?= json_encode($product_revenues) ?>;
+            const productQuantities = <?= json_encode($product_quantities) ?>;
+
+            if (productNames.length > 0 && productRevenues.length > 0) {
+                const revenueCtx = document.getElementById('productRevenueChart').getContext('2d');
+                new Chart(revenueCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: productNames,
+                        datasets: [{
+                            label: 'Revenue',
+                            data: productRevenues,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.6)',
+                                'rgba(54, 162, 235, 0.6)',
+                                'rgba(255, 206, 86, 0.6)',
+                                'rgba(75, 192, 192, 0.6)',
+                                'rgba(153, 102, 255, 0.6)',
+                                'rgba(255, 159, 64, 0.6)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Диаграмма количества проданных товаров
+            if (productNames.length > 0 && productQuantities.length > 0) {
+                const quantityCtx = document.getElementById('productQuantityChart').getContext('2d');
+                new Chart(quantityCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: productNames,
+                        datasets: [{
+                            label: 'Quantity Sold',
+                            data: productQuantities,
+                            backgroundColor: [
+                                'rgba(255, 159, 64, 0.6)',
+                                'rgba(153, 102, 255, 0.6)',
+                                'rgba(75, 192, 192, 0.6)',
+                                'rgba(255, 206, 86, 0.6)',
+                                'rgba(54, 162, 235, 0.6)',
+                                'rgba(255, 99, 132, 0.6)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    initProductCharts();
+</script>
+<?php
+$content = ob_get_clean();
+require '../interface/templates/layout.php';
+?>

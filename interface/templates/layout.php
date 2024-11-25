@@ -1,5 +1,4 @@
 <?php
-require_once '../backend/config.php';
 $role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : '';
 
 // Генерация CSRF токена
@@ -15,18 +14,18 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" href="../icons/apple.ico" type="image/x-icon">
     <meta charset="UTF-8">
     <meta name="csrf-token" content="<?= $_SESSION['csrf_token'] ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($title ?? 'Green Market') ?></title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="<?= BASE_URL ?>/interface/css/styles.css">
+    <link rel="stylesheet" href="../interface/css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 
 <body>
-<!-- Навигация -->
 <!-- Навигация -->
 <header class="main-header">
     <nav class="navbar">
@@ -36,30 +35,30 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                 <li><a href="index.php">Home</a></li>
                 <li><a href="events.php">Events</a></li>
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <li><a href="<?= BASE_URL ?>/frontend/my_orders.php">My Orders</a></li>
+                    <li><a href="../frontend/my_orders.php">My Orders</a></li>
                     <?php if (($_SESSION['user_role'] === 'admin') || ($_SESSION['user_role'] === 'moderator')): ?>
-                        <li><a href="<?= BASE_URL ?>/frontend/manage_categories.php" class="btn-admin">Manage Categories</a></li>
+                        <li><a href="../frontend/manage_categories.php" class="btn-admin">Manage Categories</a></li>
                     <?php endif; ?>
                     <?php if ($_SESSION['user_role'] === 'admin'): ?>
-                        <li><a href="<?= BASE_URL ?>/frontend/<?= htmlspecialchars($role) ?>_dashboard.php">Admin Panel</a></li>
+                        <li><a href="../frontend/<?= htmlspecialchars($role) ?>_dashboard.php">Admin Panel</a></li>
                     <?php else : ?>
-                        <li><a href="<?= BASE_URL ?>/frontend/<?= htmlspecialchars($role) ?>_dashboard.php">Dashboard</a></li>
+                        <li><a href="../frontend/<?= htmlspecialchars($role) ?>_dashboard.php">Dashboard</a></li>
                     <?php endif; ?>
                     <!-- Кнопка профиля -->
                     <li class="navbar-profile">
-                        <a href="<?= BASE_URL ?>/frontend/profile.php">
+                        <a href="../frontend/profile.php">
                             <img src="../icons/profileIcon.png" alt="Profile" class="profile-icon">
                         </a>
                     </li>
                     <li class="navbar-cart">
-                        <a href="<?= BASE_URL ?>/frontend/cart.php" class="cart-link">
+                        <a href="../frontend/cart.php" class="cart-link">
                             <img src="../icons/cartIcon.png" alt="Cart" class="cart-icon">
                             <span class="cart-count"><?= isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'], 'quantity')) : 0 ?></span>
                         </a>
                     </li>
                     <!-- Кнопка Logout -->
                     <li class="navbar-logout">
-                        <a href="<?= BASE_URL ?>/frontend/logout.php" class="btn-primary">Logout</a>
+                        <a href="../frontend/logout.php" class="btn-primary">Logout</a>
                     </li>
                 <?php else: ?>
                     <li><a type="button" class="btn-primary" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a></li>
@@ -108,7 +107,7 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                     </div>
                     <div class="d-flex justify-content-between">
                         <button type="submit" class="btn btn-success">Login</button>
-                        <a href="register.php" class="btn btn-secondary">Register</a>
+                        <a href="#" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#registerModal">Register</a>
                     </div>
                     <div class="mt-3 text-center">
                         <a href="forgot_password.php" class="text-decoration-none">Forgot Password?</a>
@@ -136,7 +135,7 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                         </ul>
                     </div>
                 <?php endif; ?>
-                <form method="POST" action="<?= BASE_URL ?>/frontend/register_handler.php">
+                <form method="POST" action="../frontend/register_handler.php">
                     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                     <div class="mb-3">
                         <label for="name" class="form-label">Name</label>
@@ -163,6 +162,34 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
         </div>
     </div>
 </div>
+
+<!-- Скрипт для управления модальными окнами -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Открытие модального окна регистрации из логина
+        const registerButton = document.querySelector('[data-bs-target="#registerModal"]');
+        registerButton.addEventListener('click', () => {
+            const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+            if (loginModal) {
+                loginModal.hide(); // Закрываем модальное окно логина
+            }
+
+            // Открываем модальное окно регистрации
+            const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
+            registerModal.show();
+        });
+
+        // Убираем блокирующий фон при закрытии всех модальных окон
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            modal.addEventListener('hidden.bs.modal', () => {
+                document.body.classList.remove('modal-open');
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) backdrop.remove();
+            });
+        });
+    });
+</script>
 
 <!-- Подвал -->
 <footer class="footer">
@@ -209,6 +236,6 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
 ?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> <!-- Bootstrap -->
-<script src="<?= BASE_URL ?>/interface/js/script.js"></script> <!-- Ваши кастомные скрипты -->
+<script src="../interface/js/script.js"></script> <!-- Ваши кастомные скрипты -->
 </body>
 </html>

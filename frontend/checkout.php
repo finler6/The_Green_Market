@@ -42,6 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     }
 
     $order_items = [];
+    $total_price = 0; // Переменная для хранения общей суммы заказа
+
     foreach ($products as $product) {
         $product_id = $product['id'];
         $quantity = $cart[$product_id]['quantity'];
@@ -50,12 +52,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         if ($quantity > $product['quantity']) {
             $errors[] = "Not enough stock for product: " . htmlspecialchars($product['name']);
         } else {
-            $total_price = $product['price'] * $quantity;
+            $item_total = $product['price'] * $quantity;
+            $total_price += $item_total; // Добавляем к общей сумме
             $order_items[] = [
                 'product_id' => $product_id,
                 'quantity' => $quantity,
                 'price_per_unit' => $product['price'],
-                'total_price' => $total_price
+                'total_price' => $item_total
             ];
         }
     }
@@ -64,10 +67,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         try {
             $pdo->beginTransaction();
 
-            // Создаем заказ
-            $query = "INSERT INTO orders (customer_id, status, order_date) VALUES (:customer_id, 'pending', NOW())";
+            // Создаем заказ с total_price
+            $query = "INSERT INTO orders (customer_id, status, order_date, total_price) 
+                      VALUES (:customer_id, 'pending', NOW(), :total_price)";
             $stmt = $pdo->prepare($query);
-            $stmt->execute(['customer_id' => $customer_id]);
+            $stmt->execute([
+                'customer_id' => $customer_id,
+                'total_price' => $total_price
+            ]);
             $order_id = $pdo->lastInsertId();
 
             // Добавляем товары в OrderItems

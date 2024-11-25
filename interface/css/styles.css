@@ -10,8 +10,51 @@ body {
     font-family: 'Arial', sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f5f5f5;
+    position: relative;
     color: #333;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background:
+            url('../../images/slices-veggies-leaves.jpg') no-repeat center center fixed;
+    background-size: 105%;
+    background-attachment: fixed;
+    filter: blur(5px);
+    -webkit-filter: blur(5px);
+    z-index: -1;
+}
+
+#heroSlider {
+    position: relative;
+    top: 0px; /* Сдвигает слайдер вверх на 50px */
+    z-index: 1; /* Убедитесь, что он будет поверх других элементов */
+}
+
+
+.carousel-item img {
+    width: 100%;
+    height: 500px; /* Высота фиксируется, чтобы все изображения выглядели одинаково */
+    object-fit: cover; /* Масштабируем изображение по ширине, сохраняя пропорции */
+    display: block; /* Убираем возможные лишние отступы */
+}
+
+.carousel-caption .caption-bg {
+    background-color: rgba(0, 0, 0, 0.6); /* Полупрозрачный черный фон */
+    border-radius: 8px; /* Закругленные углы */
+    padding: 10px; /* Отступы внутри блока */
+    display: inline-block; /* Устанавливаем ширину блока только по содержимому */
+    max-width: 80%; /* Ограничиваем ширину фона */
+}
+.carousel-caption h5 {
+    color: #fff; /* Белый текст для лучшей читаемости */
+    margin: 0; /* Убираем лишние отступы */
+    text-align: center; /* Выравниваем текст по центру */
 }
 
 .container {
@@ -22,9 +65,9 @@ body {
 
 /* Навигация */
 .main-header {
-    background-color: #238a3b; /* Зеленый цвет */
+    background-color: rgba(20, 110, 41, 0.8); /* Зеленый цвет с 80% непрозрачности */
     padding: 15px 0;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 7px rgba(0, 0, 0, 0.65);
 }
 
 .navbar-container {
@@ -346,12 +389,12 @@ body {
 
 /* Подвал */
 .footer {
-    background-color: #238a3b; /* Зеленый цвет */
+    background-color: rgba(20, 110, 41, 0.8);
     color: #ffffff;
     text-align: center;
     padding: 15px 0;
     margin-top: 20px;
-    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.65);
 }
 
 .footer p {
@@ -1095,6 +1138,57 @@ body {
 .slider-prev:hover,
 .slider-next:hover {
     background-color: rgba(0, 0, 0, 0.7);
+}
+
+.product-gallery-container {
+    position: relative;
+    overflow: hidden;
+    width: 100%; /* Или задайте фиксированный размер, например, 400px */
+    max-width: 400px; /* Максимальная ширина квадрата */
+    aspect-ratio: 1 / 1; /* Соотношение сторон для квадрата */
+    margin: 0 auto; /* Центрирование контейнера */
+}
+
+.product-gallery-images {
+    display: flex;
+    transition: transform 0.5s ease;
+    height: 100%; /* Устанавливаем высоту равной контейнеру */
+}
+
+.product-gallery-images img {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%; /* Масштабируем по высоте контейнера */
+    object-fit: cover; /* Обрезаем изображение, чтобы заполнить квадрат */
+}
+
+.product-gallery-prev,
+.product-gallery-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.product-gallery-prev {
+    left: 10px;
+}
+
+.product-gallery-next {
+    right: 10px;
+}
+
+.modal-backdrop {
+    z-index: 1040; /* Убедитесь, что это выше элементов контента */
+}
+
+.modal {
+    z-index: 1050; /* Убедитесь, что это выше затемнённого фона */
 }
 
 @media (max-width: 1024px) {

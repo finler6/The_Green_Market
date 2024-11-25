@@ -40,7 +40,7 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <!-- Ссылки на управление категориями и атрибутами -->
 <div class="mb-4">
     <a href="../manage_categories.php" class="btn btn-primary">Manage Categories</a>
-    <a href="../moderate_categories.php" class="btn btn-primary">Moderate Category Proposals</a>
+    <a href="moderate_categories.php" class="btn btn-primary">Moderate Category Proposals</a>
     <a href="../manage_attributes.php" class="btn btn-secondary">Manage Attributes</a>
 </div>
 
