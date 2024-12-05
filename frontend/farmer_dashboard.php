@@ -36,14 +36,17 @@ $stmt->execute(['farmer_id' => $current_user_id]);
 $pending_orders_stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
 $product_revenue_query = "
-    SELECT products.name AS product_name, 
+    SELECT products.id AS product_id,
+           products.name AS product_name, 
            SUM(orderitems.quantity) AS total_quantity_sold, 
-           SUM(orderitems.total_price) AS total_revenue
+           SUM(orderitems.total_price) AS total_revenue,
+           AVG(reviews.rating) AS average_rating
     FROM orderitems
     JOIN products ON orderitems.product_id = products.id
     JOIN orders ON orders.id = orderitems.order_id
+    LEFT JOIN reviews ON reviews.product_id = products.id
     WHERE products.farmer_id = :farmer_id AND orders.status = 'completed'
-    GROUP BY products.name
+    GROUP BY products.id
 ";
 $stmt = $pdo->prepare($product_revenue_query);
 $stmt->execute(['farmer_id' => $current_user_id]);
@@ -52,7 +55,9 @@ $product_revenue_stats = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $product_names = array_column($product_revenue_stats, 'product_name');
 $product_revenues = array_column($product_revenue_stats, 'total_revenue');
 $product_quantities = array_column($product_revenue_stats, 'total_quantity_sold');
+$product_average_ratings = array_column($product_revenue_stats, 'average_rating');
 
+// Генерация CSRF токена
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -96,6 +101,40 @@ ob_start();
         </div>
     </div>
 
+    <?php if (!empty($product_revenue_stats)): ?>
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <h3>Product Performance</h3>
+                <table class="table table-striped" id="productStatsTable">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Total Quantity Sold</th>
+                            <th>Total Revenue</th>
+                            <th>Average Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($product_revenue_stats as $product): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($product['product_name']) ?></td>
+                                <td><?= htmlspecialchars($product['total_quantity_sold']) ?></td>
+                                <td>$<?= number_format($product['total_revenue'], 2) ?></td>
+                                <td><?= number_format($product['average_rating'] ?? 0, 1) ?> / 5</td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    <?php else: ?>
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <p class="text-center text-muted">No data available for your products.</p>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <?php if (!empty($product_revenues)): ?>
         <div class="row mt-4">
             <div class="col-md-6">
@@ -107,87 +146,89 @@ ob_start();
                 <canvas id="productQuantityChart" style="max-width: 400px; max-height: 400px;"></canvas>
             </div>
         </div>
-    <?php else: ?>
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <p class="text-center text-muted">No revenue data available for your products.</p>
-            </div>
-        </div>
     <?php endif; ?>
 </div>
 
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    function initProductCharts() {
-        document.addEventListener('DOMContentLoaded', function () {
-            const productNames = <?= json_encode($product_names) ?>;
-            const productRevenues = <?= json_encode($product_revenues) ?>;
-            const productQuantities = <?= json_encode($product_quantities) ?>;
-
-            if (productNames.length > 0 && productRevenues.length > 0) {
-                const revenueCtx = document.getElementById('productRevenueChart').getContext('2d');
-                new Chart(revenueCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: productNames,
-                        datasets: [{
-                            label: 'Revenue',
-                            data: productRevenues,
-                            backgroundColor: [
-                                'rgba(255, 99, 132, 0.6)',
-                                'rgba(54, 162, 235, 0.6)',
-                                'rgba(255, 206, 86, 0.6)',
-                                'rgba(75, 192, 192, 0.6)',
-                                'rgba(153, 102, 255, 0.6)',
-                                'rgba(255, 159, 64, 0.6)'
-                            ],
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                            }
-                        }
-                    }
-                });
-            }
-
-            if (productNames.length > 0 && productQuantities.length > 0) {
-                const quantityCtx = document.getElementById('productQuantityChart').getContext('2d');
-                new Chart(quantityCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: productNames,
-                        datasets: [{
-                            label: 'Quantity Sold',
-                            data: productQuantities,
-                            backgroundColor: [
-                                'rgba(255, 159, 64, 0.6)',
-                                'rgba(153, 102, 255, 0.6)',
-                                'rgba(75, 192, 192, 0.6)',
-                                'rgba(255, 206, 86, 0.6)',
-                                'rgba(54, 162, 235, 0.6)',
-                                'rgba(255, 99, 132, 0.6)'
-                            ],
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                            }
-                        }
-                    }
-                });
-            }
+    $(document).ready(function() {
+        $('#productStatsTable').DataTable({
+            "order": [[2, "desc"]]
         });
+    });
+
+    function initProductCharts() {
+        const productNames = <?= json_encode($product_names) ?>;
+        const productRevenues = <?= json_encode($product_revenues) ?>;
+        const productQuantities = <?= json_encode($product_quantities) ?>;
+
+        if (productNames.length > 0 && productRevenues.length > 0) {
+            const revenueCtx = document.getElementById('productRevenueChart').getContext('2d');
+            new Chart(revenueCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: productNames,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: productRevenues,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.6)',
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(255, 206, 86, 0.6)',
+                            'rgba(75, 192, 192, 0.6)',
+                            'rgba(153, 102, 255, 0.6)',
+                            'rgba(255, 159, 64, 0.6)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+
+        if (productNames.length > 0 && productQuantities.length > 0) {
+            const quantityCtx = document.getElementById('productQuantityChart').getContext('2d');
+            new Chart(quantityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: productNames,
+                    datasets: [{
+                        label: 'Quantity Sold',
+                        data: productQuantities,
+                        backgroundColor: [
+                            'rgba(255, 159, 64, 0.6)',
+                            'rgba(153, 102, 255, 0.6)',
+                            'rgba(75, 192, 192, 0.6)',
+                            'rgba(255, 206, 86, 0.6)',
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(255, 99, 132, 0.6)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
     }
 
     initProductCharts();

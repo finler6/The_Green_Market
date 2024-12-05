@@ -32,20 +32,20 @@ $users_by_month_query = $pdo->query("
 $users_by_month = $users_by_month_query->fetchAll(PDO::FETCH_ASSOC);
 
 $popular_products_query = $pdo->query("
-    SELECT products.name, COUNT(orderitems.id) AS total_orders
-    FROM orderitems
-    JOIN products ON orderitems.product_id = products.id
-    GROUP BY products.id 
+    SELECT p.name, p.price_unit, p.quantity_unit, COUNT(oi.id) AS total_orders
+    FROM orderitems oi
+    JOIN products p ON oi.product_id = p.id
+    GROUP BY p.id 
     ORDER BY total_orders DESC
     LIMIT 5
 ");
 $popular_products = $popular_products_query->fetchAll(PDO::FETCH_ASSOC);
 
 $popular_products_query_in_quantity = $pdo->query("
-    SELECT products.name, SUM(orderitems.quantity) AS total_quantity
-    FROM orderitems
-    JOIN products ON orderitems.product_id = products.id
-    GROUP BY products.id 
+    SELECT p.name, p.price_unit, p.quantity_unit, SUM(oi.quantity) AS total_quantity
+    FROM orderitems oi
+    JOIN products p ON oi.product_id = p.id
+    GROUP BY p.id 
     ORDER BY total_quantity DESC
     LIMIT 5
 ");
@@ -130,7 +130,7 @@ ob_start();
             <button class="nav-link" id="charts-tab" data-bs-toggle="tab" data-bs-target="#charts" type="button" role="tab" aria-controls="charts" aria-selected="false">Charts</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="false">Users</button>
+            <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="false">users</button>
         </li>
     </ul>
 
@@ -148,7 +148,7 @@ ob_start();
             <div class="tab-content">
                 <div class="tab-pane fade show active" id="user-list" role="tabpanel" aria-labelledby="user-list-tab">
                     <div class="mb-4">
-                        <input type="text" id="searchUsers" class="form-control" placeholder="Search by email or name...">
+                        <input type="text" id="searchusers" class="form-control" placeholder="Search by email or name...">
                     </div>
                     <table class="table table-striped">
                         <thead>
@@ -200,7 +200,7 @@ ob_start();
                 <div class="col-md-3">
                     <div class="card border-primary text-center shadow">
                         <div class="card-body">
-                            <h5 class="card-title">Total Users</h5>
+                            <h5 class="card-title">Total users</h5>
                             <p class="display-6 text-primary"><?= htmlspecialchars($total_users) ?></p>
                         </div>
                     </div>
@@ -208,7 +208,7 @@ ob_start();
                 <div class="col-md-3">
                     <div class="card border-success text-center shadow">
                         <div class="card-body">
-                            <h5 class="card-title">Total Products</h5>
+                            <h5 class="card-title">Total products</h5>
                             <p class="display-6 text-success"><?= htmlspecialchars($total_products) ?></p>
                         </div>
                     </div>
@@ -216,7 +216,7 @@ ob_start();
                 <div class="col-md-3">
                     <div class="card border-warning text-center shadow">
                         <div class="card-body">
-                            <h5 class="card-title">Total Orders</h5>
+                            <h5 class="card-title">Total orders</h5>
                             <p class="display-6 text-warning"><?= htmlspecialchars($total_orders) ?></p>
                         </div>
                     </div>
@@ -225,7 +225,7 @@ ob_start();
                     <div class="card border-info text-center shadow">
                         <div class="card-body">
                             <h5 class="card-title">Total Revenue</h5>
-                            <p class="display-6 text-info">$<?= htmlspecialchars(number_format($total_revenue, 2)) ?></p>
+                            <p class="display-6 text-info">$<?= htmlspecialchars(number_format($total_revenue ?? 0, 2)) ?></p>
                         </div>
                     </div>
                 </div>
@@ -243,18 +243,22 @@ ob_start();
                 <div class="col-md-6">
                     <div class="card shadow">
                         <div class="card-body">
-                            <h5 class="card-title text-center">Top 5 Popular Products</h5>
+                            <h5 class="card-title text-center">Top 5 Popular products</h5>
                             <table class="table table-striped table-hover">
                                 <thead>
                                 <tr>
                                     <th>Product Name</th>
-                                    <th>Total Orders</th>
+                                    <th>Price Unit</th>
+                                    <th>Quantity Unit</th>
+                                    <th>Total orders</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 <?php foreach ($popular_products as $product): ?>
                                     <tr>
                                         <td><?= htmlspecialchars($product['name']) ?></td>
+                                        <td><?= htmlspecialchars(str_replace('_', ' ', $product['price_unit'])) ?></td>
+                                        <td><?= htmlspecialchars($product['quantity_unit']) ?></td>
                                         <td><?= htmlspecialchars($product['total_orders']) ?></td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -263,6 +267,7 @@ ob_start();
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
 
@@ -271,15 +276,15 @@ ob_start();
                 <div class="col-md-6">
                     <div class="card shadow">
                         <div class="card-body">
-                            <h5 class="card-title">Monthly Orders</h5>
-                            <canvas id="monthlyOrdersChart"></canvas>
+                            <h5 class="card-title">Monthly orders</h5>
+                            <canvas id="monthlyordersChart"></canvas>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="card shadow">
                         <div class="card-body">
-                            <h5 class="card-title">Users by Month</h5>
+                            <h5 class="card-title">users by Month</h5>
                             <canvas id="usersByMonthChart"></canvas>
                         </div>
                     </div>
@@ -287,9 +292,9 @@ ob_start();
                 <div class="col-md-12">
                     <div class="card shadow">
                         <div class="card-body">
-                            <h5 class="card-title">Top 5 Popular Products</h5>
+                            <h5 class="card-title">Top 5 Popular products</h5>
                             <div class="chart-container">
-                                <canvas id="popularProductsChart"></canvas>
+                                <canvas id="popularproductsChart"></canvas>
                             </div>
                         </div>
                     </div>
@@ -300,18 +305,18 @@ ob_start();
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const monthlyOrders = <?= json_encode($monthly_orders) ?>;
+        const monthlyorders = <?= json_encode($monthly_orders) ?>;
         const usersByMonth = <?= json_encode($users_by_month) ?>;
-        const popularProducts = <?= json_encode($popular_products_in_quantity) ?>;
+        const popularproducts = <?= json_encode($popular_products_in_quantity) ?>;
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        new Chart(document.getElementById('monthlyOrdersChart'), {
+        new Chart(document.getElementById('monthlyordersChart'), {
             type: 'line',
             data: {
-                labels: monthlyOrders.map(item => item.month),
+                labels: monthlyorders.map(item => item.month),
                 datasets: [{
                     label: 'Orders',
-                    data: monthlyOrders.map(item => item.total_orders),
+                    data: monthlyorders.map(item => item.total_orders),
                     borderColor: 'rgba(75, 192, 192, 1)',
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     borderWidth: 2
@@ -353,13 +358,13 @@ ob_start();
             }
         });
 
-        new Chart(document.getElementById('popularProductsChart'), {
+        new Chart(document.getElementById('popularproductsChart'), {
             type: 'doughnut',
             data: {
-                labels: popularProducts.map(item => item.name),
+                labels: popularproducts.map(item => `${item.name} (${item.quantity_unit})`),
                 datasets: [{
-                    label: 'Orders',
-                    data: popularProducts.map(item => item.total_quantity),
+                    label: 'Quantity Sold',
+                    data: popularproducts.map(item => item.total_quantity),
                     backgroundColor: [
                         'rgba(255, 99, 132, 0.6)',
                         'rgba(54, 162, 235, 0.6)',
@@ -380,7 +385,7 @@ ob_start();
     </script>
 
     <script>
-        document.getElementById('searchUsers').addEventListener('input', function (event) {
+        document.getElementById('searchusers').addEventListener('input', function (event) {
             const query = event.target.value;
 
             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');

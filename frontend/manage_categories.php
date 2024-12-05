@@ -5,7 +5,6 @@ require '../backend/auth.php';
 
 ensureRole('moderator');
 
-
 function getCategoryName($pdo, $categoryId) {
     $query = "SELECT name FROM categories WHERE id = :id";
     $stmt = $pdo->prepare($query);
@@ -301,7 +300,6 @@ ob_start();
                 <div class="modal-body">
                     <div id="attributesContainer">
                         <ul class="list-group">
-
                         </ul>
                     </div>
                     <hr>
@@ -502,14 +500,13 @@ ob_start();
                     if (data.success) {
                         addAttributeForm.reset();
                         const categoryId = document.getElementById('addAttributeCategoryId').value;
-                        fetchAttributes(categoryId);в
+                        fetchAttributes(categoryId);
                     } else {
                         alert('Failed to add attribute: ' + data.error);
                     }
                 })
                 .catch(error => console.error('Error:', error));
             });
-
 
             const addDeleteHandlers = (categoryId) => {
                 document.querySelectorAll('.delete-attribute-btn').forEach(button => {
@@ -549,8 +546,6 @@ ob_start();
             };
         });
     </script>
-
-
 
 <?php
 $content = ob_get_clean();

@@ -366,6 +366,100 @@ body::before {
     margin-top: 20px;
 }
 
+.navbar-notifications {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.notification-icon {
+    width: 30px;
+    height: 30px;
+    transition: transform 0.3s ease;
+}
+
+.navbar-notifications:hover .notification-icon {
+    transform: scale(1.1);
+}
+
+.notification-count {
+    position: absolute;
+    top: 0px;
+    right: 5px;
+    background-color: red;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 15px;
+    height: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.navbar-notifications:hover .notification-count {
+    background-color: red;
+    transform: scale(1.2);
+}
+
+.notification-panel {
+    position: absolute;
+    right: 0;
+    top: 40px;
+    width: 300px;
+    max-height: 400px;
+    overflow-y: auto;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0s, opacity 0.3s ease;
+}
+
+.navbar-notifications:hover .notification-panel {
+    visibility: visible;
+    opacity: 1;
+}
+
+.notification-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    color: #333;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.notification-item:hover {
+    background-color: #f9f9f9;
+}
+
+#notificationPanel p,
+#notificationPanel a {
+    color: #000; /* Устанавливает цвет текста для абзацев и ссылок */
+}
+
+#clearNotifications {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+    border-top: 1px solid #eee;
+    background-color: #f8f8f8;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#clearNotifications:hover {
+    background-color: #f0f0f0;
+}
+
 .main-content {
     flex: 1;
     display: flex;

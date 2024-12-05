@@ -21,23 +21,11 @@ if ($order_by === 'price_asc') {
 } elseif ($order_by === 'popularity') {
     $order_clause = "
         ORDER BY (
-            SELECT COUNT(*) FROM Orders WHERE Orders.product_id = products.id
+            SELECT COUNT(*) FROM orders WHERE orders.product_id = products.id
         ) DESC";
 }
 
-$query = "SELECT products.id, products.name, categories.name AS category, products.price, products.quantity 
-          FROM products
-          JOIN categories ON products.category_id = categories.id
-          $where_clause
-          $order_clause";
-$stmt = $pdo->prepare($query);
-if ($category_id) {
-    $stmt->execute(['category_id' => $category_id]);
-} else {
-    $stmt->execute();
-}
-$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-$query = "SELECT products.id, products.name, categories.name AS category, products.price, products.quantity, products.farmer_id
+$query = "SELECT products.id, products.name, categories.name AS category, products.price, products.price_unit, products.quantity, products.quantity_unit, products.farmer_id
           FROM products
           JOIN categories ON products.category_id = categories.id
           $where_clause
@@ -62,7 +50,6 @@ $query = "
 
 $sliderStmt = $pdo->query($query);
 $sliderItems = $sliderStmt->fetchAll(PDO::FETCH_ASSOC);
-
 
 ob_start();
 ?>
@@ -96,11 +83,11 @@ ob_start();
     </div>
 <?php endif; ?>
 
-
-
-
-
 <h1 class="text-center mb-4">Browse products</h1>
+
+    <div class="text-center mb-4">
+        <a href="advanced_search.php" class="btn btn-secondary">Advanced Search</a>
+    </div>
 
 <div class="row g-3 align-items-center mb-4">
     <form method="GET" action="index.php" class="row">
@@ -137,21 +124,30 @@ ob_start();
             <a href="product.php?id=<?= $product['id'] ?>" class="product-link">
                 <h3><?= htmlspecialchars($product['name']) ?></h3>
                 <p>Category: <?= htmlspecialchars($product['category']) ?></p>
-                <p>$<?= number_format($product['price'], 2) ?>/kg</p>
+                <p>
+                    $<?= number_format($product['price'], 2) ?>
+                    <?= htmlspecialchars(str_replace('_', ' ', $product['price_unit'])) ?>
+                </p>
                 <?php if ($product['quantity'] > 0): ?>
-                    <p>Available: <?= htmlspecialchars($product['quantity']) ?> units</p>
+                    <p>
+                        Available: <?= htmlspecialchars($product['quantity']) ?>
+                        <?= htmlspecialchars($product['quantity_unit']) ?>
+                    </p>
                 <?php else: ?>
                     <p class="text-danger">Out of stock</p>
                 <?php endif; ?>
+
             </a>
 
-            <?php if (isset($_SESSION['user_role']) && $product['quantity'] > 0): ?>
+            <?php if (isset($_SESSION['user_id']) && $product['quantity'] > 0): ?>
                 <?php if ($_SESSION['user_role'] !== 'farmer' || $product['farmer_id'] !== $_SESSION['user_id']): ?>
                     <button type="button" class="btn btn-success btn-add-to-cart" data-bs-toggle="modal"
                             data-bs-target="#addToCartModal"
                             data-product-id="<?= $product['id'] ?>"
                             data-product-name="<?= htmlspecialchars($product['name']) ?>"
-                            data-product-max="<?= $product['quantity'] ?>">Add to Cart
+                            data-product-max="<?= $product['quantity'] ?>"
+                            data-product-price-unit="<?= htmlspecialchars($product['price_unit']) ?>"
+                            data-product-quantity-unit="<?= htmlspecialchars($product['quantity_unit']) ?>">Add to Cart
                     </button>
                 <?php else: ?>
                     <button class="btn btn-secondary btn-add-to-cart" disabled>Cannot Add Own Product</button>
@@ -164,7 +160,6 @@ ob_start();
         </div>
     <?php endforeach; ?>
 </div>
-
 
 <div class="modal fade" id="addToCartModal" tabindex="-1" aria-labelledby="addToCartModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -181,7 +176,7 @@ ob_start();
                         <input type="text" id="modal-product-name" class="form-control" value="" readonly>
                     </div>
                     <div class="mb-3">
-                        <label for="modal-quantity" class="form-label">Quantity</label>
+                        <label for="modal-quantity" class="form-label" id="modal-quantity-label">Quantity</label>
                         <input type="number" id="modal-quantity" name="quantity" class="form-control" min="1" value="1">
                     </div>
                     <button type="submit" class="btn btn-success">Add to Cart</button>
@@ -191,6 +186,39 @@ ob_start();
     </div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const addToCartButtons = document.querySelectorAll('.btn-add-to-cart');
+
+    addToCartButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            const productId = this.getAttribute('data-product-id');
+            const productName = this.getAttribute('data-product-name');
+            const productMax = this.getAttribute('data-product-max');
+            const priceUnit = this.getAttribute('data-product-price-unit');
+            const productQuantityUnit = this.getAttribute('data-product-quantity-unit');
+
+            document.getElementById('modal-product-id').value = productId;
+            document.getElementById('modal-product-name').value = productName;
+
+            const quantityInput = document.getElementById('modal-quantity');
+            quantityInput.value = 1;
+            quantityInput.setAttribute('max', productMax);
+
+            if (priceUnit === 'per_unit') {
+                quantityInput.setAttribute('step', '1');
+                quantityInput.setAttribute('type', 'number');
+            } else {
+                quantityInput.setAttribute('step', '0.01');
+                quantityInput.setAttribute('type', 'number');
+            }
+            document.getElementById('modal-quantity-label').innerText = 'Quantity (' + productQuantityUnit + ')';
+        });
+    });
+});
+</script>
+
 <?php
 $content = ob_get_clean();
 require '../interface/templates/layout.php';
+?>

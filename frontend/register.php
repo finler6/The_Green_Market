@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $role = 'customer';
 
         try {
-            $query = "INSERT INTO Users (name, email, password, role) VALUES (:name, :email, :password, :role)";
+            $query = "INSERT INTO users (name, email, password, role) VALUES (:name, :email, :password, :role)";
             $stmt = $pdo->prepare($query);
             $stmt->execute([
                 'name' => $name,

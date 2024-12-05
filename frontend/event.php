@@ -1,5 +1,6 @@
 <?php
 session_start();
+umask(0022);
 require '../backend/db.php';
 
 $event_id = isset($_GET['id']) ? (int)$_GET['id'] : null;
@@ -34,7 +35,7 @@ $image_stmt->execute(['event_id' => $event_id]);
 $event_images = $image_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if (empty($event_images)) {
-    $event_images = [['id' => 0, 'image_path' => 'IIS/images/placeholder.png']];
+    $event_images = [['id' => 0, 'image_path' => '../images/placeholder.png']];
 }
 
 function getEventStatus($date) {
@@ -70,10 +71,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $logged_in) {
     $contentType = $_SERVER["CONTENT_TYPE"] ?? '';
 
     if (strpos($contentType, 'application/json') !== false) {
+        // Handle JSON request
         $data = json_decode(file_get_contents('php://input'), true);
         $csrf_token = $data['csrf_token'] ?? '';
         $action = $data['action'] ?? '';
     } elseif (strpos($contentType, 'multipart/form-data') !== false) {
+        // Handle form data
         $csrf_token = $_POST['csrf_token'] ?? '';
         $action = $_POST['action'] ?? '';
     } else {
@@ -114,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $logged_in) {
 
             foreach ($images as $image) {
                 $filePath = '..' . $image['image_path'];
-                if (file_exists($filePath)) {
+                if (file_exists($filePath) && is_writable($filePath)) {
                     unlink($filePath);
                 }
             }
@@ -122,7 +125,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $logged_in) {
             $delete_images_query = "DELETE FROM eventimages WHERE event_id = :event_id";
             $delete_images_stmt = $pdo->prepare($delete_images_query);
             $delete_images_stmt->execute(['event_id' => $event_id]);
-
 
             $delete_interests_query = "DELETE FROM userinterests WHERE event_id = :event_id";
             $delete_interests_stmt = $pdo->prepare($delete_interests_query);
@@ -164,18 +166,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $logged_in) {
 
         if (!empty($_FILES['images']['name'][0])) {
             $uploadDir = '../images/';
-            $uploadDirURL = '/images/'; 
+            $uploadDirURL = '../images/';
             if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
+                mkdir($uploadDir, 0755, true);
+                chmod($uploadDir, 0755);
             }
 
             foreach ($_FILES['images']['tmp_name'] as $key => $tmpName) {
                 $fileName = basename($_FILES['images']['name'][$key]);
                 $uniqueFileName = uniqid() . '_' . $fileName;
                 $targetFilePath = $uploadDir . $uniqueFileName;
-                $imageURL = $uploadDirURL . $uniqueFileName;         
+                $imageURL = $uploadDirURL . $uniqueFileName;
 
                 if (move_uploaded_file($tmpName, $targetFilePath)) {
+                    chmod($targetFilePath, 0644);
+
                     $insertImageQuery = "INSERT INTO eventimages (event_id, image_path) VALUES (:event_id, :image_path)";
                     $insertImageStmt = $pdo->prepare($insertImageQuery);
                     $insertImageStmt->execute([
@@ -183,6 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $logged_in) {
                         'image_path' => $imageURL
                     ]);
                 }
+
             }
         }
 
@@ -197,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $logged_in) {
         $image = $image_stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($image) {
-            $filePath = '..' . $image['image_path']; 
+            $filePath = $image['image_path'];
             if (file_exists($filePath)) {
                 unlink($filePath);
             }
@@ -228,6 +234,7 @@ ob_start();
     <div class="hero-slider">
         <div class="slider-container">
             <?php foreach ($event_images as $image): ?>
+
                 <div class="slider-item">
                     <img src="<?= htmlspecialchars($image['image_path']) ?>" alt="Event Image">
                     <?php if ($can_edit_event && $image['id'] != 0): ?>

@@ -1,5 +1,6 @@
 <?php
 session_start();
+umask(0022);
 require '../backend/db.php';
 
 $role = $_SESSION['user_role'] ?? '';
@@ -8,6 +9,10 @@ $product_id = isset($_GET['id']) ? (int)$_GET['id'] : null;
 if (!$product_id) {
     header('Location: index.php');
     exit;
+}
+
+function formatUnit($unit) {
+    return str_replace('_', ' ', $unit);
 }
 
 function getCategoryAncestors($pdo, $category_id) {
@@ -38,17 +43,25 @@ function getAttributesForCategories($pdo, $categories) {
 }
 
 function getProductAttributes($pdo, $product_id) {
-    $stmt = $pdo->prepare("SELECT attribute_id, value FROM productattributes WHERE product_id = :product_id");
+    $stmt = $pdo->prepare("
+        SELECT a.id, a.name, pa.value
+        FROM productattributes pa
+        JOIN attributes a ON pa.attribute_id = a.id
+        WHERE pa.product_id = :product_id
+    ");
     $stmt->execute(['product_id' => $product_id]);
     $attributes = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $result = [];
     foreach ($attributes as $attr) {
-        $result[$attr['attribute_id']] = $attr['value'];
+        $result[$attr['id']] = [
+            'name' => $attr['name'],
+            'value' => $attr['value']
+        ];
     }
     return $result;
 }
 
-$query = "SELECT products.id, products.name, products.category_id, products.price, products.quantity, products.description, products.farmer_id, users.name AS farmer_name
+$query = "SELECT products.id, products.name, products.category_id, products.price, products.price_unit, products.quantity, products.quantity_unit, products.description, products.farmer_id, users.name AS farmer_name
           FROM products
           JOIN users ON products.farmer_id = users.id
           WHERE products.id = :product_id";
@@ -175,7 +188,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'delete_review') {
         $review_id = (int)($data['review_id'] ?? 0);
-
+    
+        // Check that the review exists and belongs to the current user or the deleter is an admin or moderator
         $review_query = "SELECT user_id FROM reviews WHERE id = :review_id AND product_id = :product_id";
         $review_stmt = $pdo->prepare($review_query);
         $review_stmt->execute([
@@ -201,7 +215,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'update_product' && $can_edit_product) {
         $name = htmlspecialchars(trim($_POST['name']));
         $price = (float)$_POST['price'];
-        $quantity = (int)$_POST['quantity'];
+        $price_unit = $_POST['price_unit'];
+        $quantity = (float)$_POST['quantity'];
+        $quantity_unit = htmlspecialchars(trim($_POST['quantity_unit']));
         $description = htmlspecialchars(trim($_POST['description']));
         $category_id = (int)$_POST['category_id'];
 
@@ -235,13 +251,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($name) && $price > 0 && $quantity >= 0) {
             $pdo->beginTransaction();
             try {
-                $update_query = "UPDATE products SET name = :name, category_id = :category_id, price = :price, quantity = :quantity, description = :description WHERE id = :product_id";
+                $update_query = "UPDATE products SET name = :name, category_id = :category_id, price = :price, price_unit = :price_unit, quantity = :quantity, quantity_unit = :quantity_unit, description = :description WHERE id = :product_id";
                 $update_stmt = $pdo->prepare($update_query);
                 $update_stmt->execute([
                     'name' => $name,
                     'category_id' => $category_id,
                     'price' => $price,
+                    'price_unit' => $price_unit,
                     'quantity' => $quantity,
+                    'quantity_unit' => $quantity_unit,
                     'description' => $description,
                     'product_id' => $product_id
                 ]);
@@ -264,7 +282,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!empty($_FILES['images']['name'][0])) {
                     $uploadDir = '../images/';
                     if (!is_dir($uploadDir)) {
-                        mkdir($uploadDir, 0777, true);
+                        mkdir($uploadDir, 0755, true);
+                        chmod($uploadDir, 0755);
                     }
     
                     foreach ($_FILES['images']['tmp_name'] as $key => $tmpName) {
@@ -272,6 +291,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $targetFilePath = $uploadDir . $fileName;
     
                         if (move_uploaded_file($tmpName, $targetFilePath)) {
+                            chmod($targetFilePath, 0644);
                             $insertImageQuery = "INSERT INTO productimages (product_id, image_path) VALUES (:product_id, :image_path)";
                             $insertImageStmt = $pdo->prepare($insertImageQuery);
                             $insertImageStmt->execute([
@@ -296,7 +316,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
     }
-    
 
     if ($action === 'delete_image' && $can_edit_product) {
         $image_id = (int)($data['image_id'] ?? 0);
@@ -307,7 +326,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $image = $image_stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($image) {
-
             $delete_query = "DELETE FROM productimages WHERE id = :image_id";
             $delete_stmt = $pdo->prepare($delete_query);
             $delete_stmt->execute(['image_id' => $image_id]);
@@ -351,14 +369,16 @@ ob_start();
                     <?php foreach ($attributes as $attribute): ?>
                         <li>
                             <strong><?= htmlspecialchars($attribute['name']) ?>:</strong>
-                            <?= htmlspecialchars($product_attributes[$attribute['id']] ?? 'N/A') ?>
+                            <?= htmlspecialchars($product_attributes[$attribute['id']]['value'] ?? 'N/A') ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>
-        <p><strong>Price:</strong> $<?= number_format($product['price'], 2) ?>/kg</p>
-        <p><strong>Available:</strong> <?= htmlspecialchars($product['quantity']) ?> units</p>
-        <p><strong>Description:</strong> <?= nl2br(htmlspecialchars($product['description'])) ?></p>
+            <p><strong>Price:</strong> $<?= number_format($product['price'], 2) ?> <?= htmlspecialchars(formatUnit($product['price_unit'])) ?></p>
+        <p><strong>Available:</strong> <?= htmlspecialchars($product['quantity']) ?> <?= htmlspecialchars($product['quantity_unit']) ?></p>
+
+
+        <p><strong>Description:</strong> <?= htmlspecialchars($product['description'] ?? '') ?></p>
         <?php if (!empty($product['farmer_name'])): ?>
             <p><strong>Seller:</strong> <a href="profile.php?id=<?= htmlspecialchars($product['farmer_id']) ?>" style="text-decoration: none; color: inherit;">
                 <?= htmlspecialchars($product['farmer_name']) ?></a></p>
@@ -389,7 +409,6 @@ ob_start();
         <?php else: ?>
             <p class="text-danger">Out of stock</p>
         <?php endif; ?>
-
 
         <?php if ($can_edit_product): ?>
             <button class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#editProductModal">Edit Product</button>
@@ -432,7 +451,7 @@ ob_start();
                 <form method="POST" action="add_to_cart.php">
                     <input type="hidden" name="product_id" value="<?= $product['id'] ?>">
                     <div class="mb-3">
-                        <label for="quantity" class="form-label">Quantity</label>
+                        <label for="quantity" class="form-label">Quantity (<?= htmlspecialchars($product['quantity_unit']) ?>)</label>
                         <input type="number" class="form-control" id="quantity" name="quantity" value="1" min="1" max="<?= $product['quantity'] ?>" required>
                     </div>
                     <button type="submit" class="btn btn-success">Add to Cart</button>
@@ -460,9 +479,32 @@ ob_start();
                         <input type="number" class="form-control" id="productPrice" name="price" value="<?= htmlspecialchars($product['price']) ?>" step="0.01" required>
                     </div>
                     <div class="mb-3">
-                        <label for="productQuantity" class="form-label">Quantity</label>
-                        <input type="number" class="form-control" id="productQuantity" name="quantity" value="<?= htmlspecialchars($product['quantity']) ?>" min="0" required>
+                        <label for="priceUnit" class="form-label">Price Unit</label>
+                        <select class="form-control" id="priceUnit" name="price_unit" required>
+                            <option value="per_unit" <?= ($product['price_unit'] == 'per_unit') ? 'selected' : '' ?>>Per Unit</option>
+                            <option value="per_kg" <?= ($product['price_unit'] == 'per_kg') ? 'selected' : '' ?>>Per Kg</option>
+                            <option value="per_liter" <?= ($product['price_unit'] == 'per_liter') ? 'selected' : '' ?>>Per Liter</option>
+                        </select>
                     </div>
+
+                    <div class="mb-3">
+                        <label for="productQuantity" class="form-label">Quantity</label>
+                        <input
+                                type="number"
+                                class="form-control"
+                                id="productQuantity"
+                                name="quantity"
+                                value="<?= htmlspecialchars($product['quantity']) ?>"
+                                min="0"
+                                required
+                                step="<?= $product['price_unit'] === 'per_unit' ? '1' : '0.01' ?>">
+
+                    </div>
+                    <div class="mb-3">
+                        <label for="quantityUnit" class="form-label">Quantity Unit</label>
+                        <input type="text" class="form-control" id="quantityUnit" name="quantity_unit" value="<?= htmlspecialchars($product['quantity_unit']) ?>" required>
+                    </div>
+
                     <div class="mb-3">
                         <label for="productCategory" class="form-label">Category</label>
                         <select class="form-control" id="productCategory" name="category_id" required>
@@ -483,7 +525,7 @@ ob_start();
                                         <?php if ($attribute['is_required']): ?><span class="text-danger">*</span><?php endif; ?>
                                     </label>
                                     <?php
-                                    $value = $product_attributes[$attribute['id']] ?? '';
+                                    $value = $product_attributes[$attribute['id']]['value'] ?? '';
                                     $inputType = $attribute['type'] === 'number' ? 'number' : ($attribute['type'] === 'date' ? 'date' : 'text');
                                     ?>
                                     <input
@@ -597,6 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                        // Remove the image element from the DOM
                         e.target.parentElement.remove();
                     } else {
                         alert('Error: ' + data.error);
@@ -674,6 +717,25 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(error => console.error('Error:', error));
     });
+
+    const addToCartModal = document.getElementById('addToCartModal');
+    const quantityInput = addToCartModal.querySelector('#quantity');
+
+    const setQuantityStep = (priceUnit) => {
+        if (priceUnit === 'per_unit') {
+            quantityInput.setAttribute('step', '1');
+        } else {
+            quantityInput.setAttribute('step', '0.01');
+        }
+    };
+
+    const addToCartButton = document.querySelector('button[data-bs-target="#addToCartModal"]');
+    if (addToCartButton) {
+        addToCartButton.addEventListener('click', (event) => {
+            const priceUnit = '<?= htmlspecialchars($product['price_unit']) ?>';
+            setQuantityStep(priceUnit);
+        });
+    }
 });
 </script>
 

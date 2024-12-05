@@ -3,7 +3,7 @@ session_start();
 require '../backend/db.php';
 require '../backend/auth.php';
 
-$title = 'Events';
+$title = 'events';
 $logged_in = isset($_SESSION['user_id']);
 $user_role = $_SESSION['user_role'] ?? '';
 $is_admin_or_moderator = in_array($user_role, ['admin', 'moderator']);
@@ -44,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_event']) && $is_f
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_event']) && $is_farmer_or_higher) {
     $event_id = (int)$_POST['event_id'];
 
+    // Удаление только для своих событий или для админов/модераторов
     $query = $is_admin_or_moderator
         ? "DELETE FROM events WHERE id = :event_id"
         : "DELETE FROM events WHERE id = :event_id AND organizer_id = :organizer_id";
@@ -101,15 +102,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_event']) && $is_
 $where_clauses = [];
 $params = [];
 if (!empty($_GET['name'])) {
-    $where_clauses[] = "Events.name LIKE :name";
+    $where_clauses[] = "events.name LIKE :name";
     $params['name'] = "%" . htmlspecialchars($_GET['name']) . "%";
 }
 if (!empty($_GET['location'])) {
-    $where_clauses[] = "Events.location LIKE :location";
+    $where_clauses[] = "events.location LIKE :location";
     $params['location'] = "%" . htmlspecialchars($_GET['location']) . "%";
 }
 if (!empty($_GET['date'])) {
-    $where_clauses[] = "Events.date = :date";
+    $where_clauses[] = "events.date = :date";
     $params['date'] = htmlspecialchars($_GET['date']);
 }
 $where_clause = $where_clauses ? "WHERE " . implode(" AND ", $where_clauses) : "";
@@ -117,7 +118,7 @@ $where_clause = $where_clauses ? "WHERE " . implode(" AND ", $where_clauses) : "
 $filter = $_GET['filter'] ?? null;
 
 if ($filter === 'my_events') {
-    $where_clauses[] = "Events.organizer_id = :user_id";
+    $where_clauses[] = "events.organizer_id = :user_id";
     $params['user_id'] = $_SESSION['user_id'];
 }
 
@@ -141,7 +142,6 @@ if ($filter === 'my_interests') {
     $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-
 function getEventStatus($date) {
     $currentDate = date('Y-m-d');
     if ($date > $currentDate) {
@@ -155,17 +155,17 @@ function getEventStatus($date) {
 
 ob_start();
 ?>
-<?php if ($is_farmer_or_higher): ?>
+<?php if ($is_admin_or_moderator): ?>
     <button type="button" class="btn btn-primary mt-4" data-bs-toggle="modal" data-bs-target="#addEventModal">
         Create New Event
     </button>
 <?php endif; ?>
-    <h1 class="text-center mb-4">Events</h1>
+    <h1 class="text-center mb-4">events</h1>
 <?php if ($logged_in): ?>
     <div class="mb-4 d-flex justify-content-between">
         <?php if ($is_farmer_or_higher): ?>
             <form method="GET" action="events.php" class="d-inline">
-                <button type="submit" name="filter" value="my_events" class="btn btn-outline-primary">My Events</button>
+                <button type="submit" name="filter" value="my_events" class="btn btn-outline-primary">My events</button>
             </form>
         <?php endif; ?>
         <form method="GET" action="events.php" class="d-inline">

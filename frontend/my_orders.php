@@ -16,7 +16,7 @@ if (empty($_SESSION['csrf_token'])) {
 $query = "
     SELECT orders.id AS order_id, orders.status, orders.order_date,
            products.id AS product_id, products.name AS product_name,
-           orderitems.quantity, orderitems.price_per_unit,
+           orderitems.quantity, orderitems.quantity_unit, orderitems.price_per_unit, orderitems.price_unit,
            (orderitems.quantity * orderitems.price_per_unit) AS total_price
     FROM orders
     JOIN orderitems ON orders.id = orderitems.order_id
@@ -33,7 +33,7 @@ if (in_array($_SESSION['user_role'], ['farmer', 'admin', 'moderator'])) {
     $farmer_query = "
         SELECT orders.id AS order_id, orders.status, orders.order_date,
                products.id AS product_id, products.name AS product_name,
-               orderitems.quantity, orderitems.price_per_unit,
+               orderitems.quantity, orderitems.quantity_unit, orderitems.price_per_unit, orderitems.price_unit,
                (orderitems.quantity * orderitems.price_per_unit) AS total_price,
                users.name AS customer_name
         FROM orders
@@ -48,11 +48,14 @@ if (in_array($_SESSION['user_role'], ['farmer', 'admin', 'moderator'])) {
     $farmer_orders = $farmer_stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_action']) && $_SESSION['user_role'] === 'farmer') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_action']) && in_array($_SESSION['user_role'], ['farmer', 'admin', 'moderator'])) {
     $order_id = (int)$_POST['order_id'];
-    $action = $_POST['order_action'];
+    $action = $_POST['order_action']; // 'confirm' или 'cancel'
+    $csrf_token = $_POST['csrf_token'] ?? '';
 
-    if (in_array($action, ['confirm', 'cancel'])) {
+    if ($csrf_token !== ($_SESSION['csrf_token'] ?? '')) {
+        $error = "Invalid CSRF token.";
+    } elseif (in_array($action, ['confirm', 'cancel'])) {
         $new_status = $action === 'confirm' ? 'completed' : 'cancelled';
         $update_query = "UPDATE orders SET status = :new_status WHERE id = :order_id";
         $update_stmt = $pdo->prepare($update_query);
@@ -62,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_action']) && $_
         $error = 'Invalid action.';
     }
 
-    header('Location: login.php');
+    header('Location: my_orders.php');
     exit;
 }
 
@@ -114,7 +117,7 @@ ob_start();
     <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
 <?php endif; ?>
 
-<?php if ($_SESSION['user_role'] === 'farmer' && !empty($farmer_orders)): ?>
+<?php if (!empty($farmer_orders)): ?>
     <h2 class="text-center mb-4">Orders to Confirm</h2>
     <div class="orders-container">
         <?php foreach ($farmer_orders as $order): ?>
@@ -122,11 +125,12 @@ ob_start();
                 <h3>Order #<?= htmlspecialchars($order['order_id']) ?></h3>
                 <p><strong>Customer:</strong> <?= htmlspecialchars($order['customer_name']) ?></p>
                 <p><strong>Product:</strong> <?= htmlspecialchars($order['product_name']) ?></p>
-                <p><strong>Quantity:</strong> <?= htmlspecialchars($order['quantity']) ?></p>
+                <p><strong>Quantity:</strong> <?= htmlspecialchars($order['quantity']) ?> <?= htmlspecialchars($order['quantity_unit']) ?></p>
                 <p><strong>Total Price:</strong> $<?= number_format($order['total_price'], 2) ?></p>
                 <p><strong>Order Date:</strong> <?= htmlspecialchars(date('F j, Y, g:i a', strtotime($order['order_date']))) ?></p>
-                <form method="POST" action="/frontend/my_orders.php">
+                <form method="POST" action="../frontend/my_orders.php">
                     <input type="hidden" name="order_id" value="<?= $order['order_id'] ?>">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                     <button type="submit" name="order_action" value="confirm" class="btn btn-success btn-sm">Confirm</button>
                     <button type="submit" name="order_action" value="cancel" class="btn btn-danger btn-sm">Cancel</button>
                 </form>
@@ -167,7 +171,7 @@ ob_start();
                     <h4>Items:</h4>
             <?php endif; ?>
 
-            <p>- <?= htmlspecialchars($order['product_name']) ?>: <?= htmlspecialchars($order['quantity']) ?> x $<?= number_format($order['price_per_unit'], 2) ?> = $<?= number_format($order['total_price'], 2) ?></p>
+            <p>- <?= htmlspecialchars($order['product_name']) ?>: <?= htmlspecialchars($order['quantity']) ?> <?= htmlspecialchars($order['quantity_unit']) ?> x $<?= number_format($order['price_per_unit'], 2) ?> <?= htmlspecialchars(str_replace('_', ' ', $order['price_unit'])) ?> = $<?= number_format($order['total_price'], 2) ?></p>
 
             <?php if ($order['status'] === 'completed' && !in_array($order['product_id'], $reviewed_products)): ?>
                 <button class="btn btn-primary btn-sm leave-review-btn"
@@ -194,7 +198,7 @@ ob_start();
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form method="POST" action="my_orders.php">
+                <form method="POST" action="../frontend/my_orders.php">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                     <input type="hidden" name="product_id" id="modalProductId" value="">
                     <div class="mb-3">

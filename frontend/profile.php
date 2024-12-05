@@ -1,5 +1,6 @@
 <?php
 session_start();
+umask(0022);
 require '../backend/db.php';
 require '../backend/auth.php';
 
@@ -25,6 +26,7 @@ if (!$user) {
 }
 
 $is_own_profile = $viewed_user_id === $current_user_id;
+
 $is_admin = $current_user_role === 'admin';
 $is_moderator = $current_user_role === 'moderator';
 $can_edit_profile = $is_own_profile || $is_admin;
@@ -44,19 +46,23 @@ if ($is_own_profile) {
 }
 
 if ($user['role'] === 'farmer' || $is_admin) {
-    $products_query = "SELECT id, name, price, quantity FROM products WHERE farmer_id = :farmer_id ORDER BY name ASC";
+    $products_query = "SELECT id, name, price, price_unit, quantity, quantity_unit FROM products WHERE farmer_id = :farmer_id ORDER BY name ASC";
     $products_stmt = $pdo->prepare($products_query);
     $products_stmt->execute(['farmer_id' => $viewed_user_id]);
     $products = $products_stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 if ($is_own_profile) {
-    $orders_query = "SELECT o.id, o.status, o.order_date, SUM(oi.quantity * oi.price_per_unit) AS total_price
-                     FROM orders o
-                     JOIN orderitems oi ON o.id = oi.order_id
-                     WHERE o.customer_id = :user_id
-                     GROUP BY o.id
-                     ORDER BY o.order_date DESC";
+    $orders_query = "
+    SELECT o.id, o.status, o.order_date, 
+           oi.quantity, oi.quantity_unit, oi.price_per_unit, oi.price_unit,
+           SUM(oi.quantity * oi.price_per_unit) AS total_price
+    FROM orders o
+    JOIN orderitems oi ON o.id = oi.order_id
+    WHERE o.customer_id = :user_id
+    GROUP BY o.id
+    ORDER BY o.order_date DESC";
+
     $orders_stmt = $pdo->prepare($orders_query);
     $orders_stmt->execute(['user_id' => $viewed_user_id]);
     $orders = $orders_stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -112,7 +118,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
             $uploadDir = '../images/';
             if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
+                mkdir($uploadDir, 0755, true);
+                chmod($uploadDir, 0755);
             }
 
             $tmpName = $_FILES['photo']['tmp_name'];
@@ -120,6 +127,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $targetFilePath = $uploadDir . $fileName;
 
             if (move_uploaded_file($tmpName, $targetFilePath)) {
+                chmod($targetFilePath, 0644);
+
                 if (!empty($user['photo_path']) && file_exists($user['photo_path'])) {
                     unlink($user['photo_path']);
                 }
@@ -133,10 +142,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             } else {
                 $error = 'Failed to upload photo.';
             }
+
         }
 
         $success = 'Profile updated successfully.';
-        header("Location: profile.php?id=$viewed_user_id");
+        header("Location: profile.php");
         exit;
     }
 }
@@ -168,7 +178,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $error = 'Failed to delete account.';
     }
 }
-
 ob_start();
 ?>
 
@@ -231,7 +240,7 @@ ob_start();
         <div class="modal fade" id="categoryProposalModal" tabindex="-1" aria-labelledby="categoryProposalModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <form method="POST" action="profile.php">
+                    <form method="POST" action="propose_category.php">
                         <div class="modal-header">
                             <h5 class="modal-title" id="categoryProposalModalLabel">Propose New Category</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -248,7 +257,7 @@ ob_start();
                                 <select class="form-control" id="parent_category" name="parent_category">
                                     <option value="">No Parent</option>
                                     <?php
-                                    $categories_query = "SELECT id, name FROM Categories";
+                                    $categories_query = "SELECT id, name FROM categories";
                                     $categories_stmt = $pdo->query($categories_query);
                                     while ($category = $categories_stmt->fetch(PDO::FETCH_ASSOC)) {
                                         echo '<option value="' . htmlspecialchars($category['id']) . '">' . htmlspecialchars($category['name']) . '</option>';
@@ -279,39 +288,63 @@ ob_start();
         </button>
     <?php endif; ?>
 
-    <?php if (($user['role'] === 'farmer' || $is_admin) && !empty($products)): ?>
+    <?php if ($user['role'] === 'farmer' || $is_admin): ?>
         <div class="products mt-4">
             <h2><?= $is_own_profile ? 'Your Products' : htmlspecialchars($user['name']) . "'s Products" ?></h2>
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Product Name</th>
-                        <th>Price</th>
-                        <th>Quantity</th>
-                        <?php if ($is_own_profile || $is_admin): ?>
-                            <th>Actions</th>
-                        <?php endif; ?>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($products as $product): ?>
-                        <tr>
-                            <td>
-                                <a href="product.php?id=<?= htmlspecialchars($product['id']) ?>">
-                                    <?= htmlspecialchars($product['name']) ?>
-                                </a>
-                            </td>
-                            <td>$<?= number_format($product['price'], 2) ?></td>
-                            <td><?= htmlspecialchars($product['quantity']) ?></td>
-                            <?php if ($is_own_profile || $is_admin): ?>
-                                <td>
 
-                                </td>
+            <?php if (!empty($products)): ?>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Price (Unit)</th>
+                            <th>Quantity (Unit)</th>
+                            <?php if ($is_own_profile || $is_admin): ?>
+                                <th>Actions</th>
                             <?php endif; ?>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($products as $product): ?>
+                            <tr>
+                                <td>
+                                    <a href="product.php?id=<?= htmlspecialchars($product['id']) ?>">
+                                        <?= htmlspecialchars($product['name']) ?>
+                                    </a>
+                                </td>
+                                <td>
+                                    <?php if ($is_own_profile || $is_admin): ?>
+                                        <input type="number" class="form-control product-price" 
+                                            data-product-id="<?= $product['id'] ?>" 
+                                            value="<?= htmlspecialchars($product['price']) ?>" step="0.01">
+                                    <?php else: ?>
+                                        <?= number_format($product['price'], 2) ?>
+                                    <?php endif; ?> 
+                                    <?= htmlspecialchars(str_replace('_', ' ', $product['price_unit'])) ?>
+                                </td>
+                                <td>
+                                    <?php if ($is_own_profile || $is_admin): ?>
+                                        <input type="number" class="form-control product-quantity" 
+                                            data-product-id="<?= $product['id'] ?>" 
+                                            value="<?= htmlspecialchars($product['quantity']) ?>">
+                                    <?php else: ?>
+                                        <?= htmlspecialchars($product['quantity']) ?> 
+                                    <?php endif; ?>
+                                    <?= htmlspecialchars($product['quantity_unit']) ?>
+                                </td>
+                                <?php if ($is_own_profile || $is_admin): ?>
+                                    <td>
+                                            <button class="btn btn-danger delete-product" data-product-id="<?= htmlspecialchars($product['id']) ?>">Delete</button>
+                                    </td>
+                                <?php endif; ?>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php else: ?>
+                <p>No products available.</p>
+            <?php endif; ?>
+
             <?php if ($is_own_profile || $is_admin): ?>
                 <button class="btn btn-success mt-3" data-bs-toggle="modal" data-bs-target="#addProductModal">
                     Add New Product
@@ -320,31 +353,92 @@ ob_start();
         </div>
     <?php endif; ?>
 
+    <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="addProductForm" method="POST" action="add_product.php" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addProductModalLabel">Add New Product</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                        <div class="mb-3">
+                            <label for="productName" class="form-label">Product Name</label>
+                            <input type="text" class="form-control" id="productName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="productPrice" class="form-label">Price</label>
+                            <input type="number" step="0.01" class="form-control" id="productPrice" name="price" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="priceUnit" class="form-label">Price Unit</label>
+                            <select class="form-control" id="priceUnit" name="price_unit" required>
+                                <option value="per_unit">Per Unit</option>
+                                <option value="per_kg">Per Kg</option>
+                                <option value="per_liter">Per Liter</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="productQuantity" class="form-label">Quantity</label>
+                            <input type="number" step="0.01" class="form-control" id="productQuantity" name="quantity" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="quantityUnit" class="form-label">Quantity Unit</label>
+                            <input type="text" class="form-control" id="quantityUnit" name="quantity_unit" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="product_category" class="form-label">Category</label>
+                            <select class="form-control" id="product_category" name="category_id" required>
+                                <?php
+                                $categories_query = "SELECT id, name FROM categories";
+                                $categories_stmt = $pdo->query($categories_query);
+                                while ($category = $categories_stmt->fetch(PDO::FETCH_ASSOC)) {
+                                    echo '<option value="' . htmlspecialchars($category['id']) . '">' . htmlspecialchars($category['name']) . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="product_description" class="form-label">Description</label>
+                            <textarea class="form-control" id="product_description" name="description" rows="3" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success">Add Product</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <?php if ($is_own_profile): ?>
         <div class="orders mt-4">
             <h2>Your Orders</h2>
             <?php if (!empty($orders)): ?>
                 <div id="ordersList" class="overflow-auto" style="max-height: 300px;">
-                    <table class="table table-bordered">
-                        <thead>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Total Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($orders as $order): ?>
                             <tr>
-                                <th>Order ID</th>
-                                <th>Status</th>
-                                <th>Date</th>
-                                <th>Total Price</th>
+                                <td><?= htmlspecialchars($order['id']) ?></td>
+                                <td><?= htmlspecialchars(ucfirst($order['status'])) ?></td>
+                                <td><?= htmlspecialchars(date('F j, Y', strtotime($order['order_date']))) ?></td>
+                                <td>$<?= number_format($order['total_price'], 2) ?></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($orders as $order): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($order['id']) ?></td>
-                                    <td><?= htmlspecialchars(ucfirst($order['status'])) ?></td>
-                                    <td><?= htmlspecialchars(date('F j, Y', strtotime($order['order_date']))) ?></td>
-                                    <td>$<?= number_format($order['total_price'], 2) ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+
                 </div>
             <?php else: ?>
                 <p>You have not placed any orders yet.</p>
@@ -390,7 +484,7 @@ ob_start();
 <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form id="editProfileForm" method="POST" action="profile.php?id=<?= $viewed_user_id ?>" enctype="multipart/form-data">
+            <form id="editProfileForm" method="POST" action="profile.php" enctype="multipart/form-data">
                 <div class="modal-header">
                     <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

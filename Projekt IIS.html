@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projekt IIS</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Informační systém pro nabídky ovoce a zeleniny</h1>
+
+    <dl>
+        <dt>Autoři</dt>
+        <dd>Pavel Stepanov (<a href="mailto:xstepa77@stud.fit.vutbr.cz">xstepa77@stud.fit.vutbr.cz</a>)</dd>
+        <dd>Gleb Litvinchuk (<a href="mailto:xlitvi02@stud.fit.vutbr.cz">xlitvi02@stud.fit.vutbr.cz</a>)</dd>
+        <dt>Datum</dt>
+        <dd>24.11.2024</dd>
+    </dl>
+
+    <h2>Obsah</h2>
+    <ul>
+        <li>1. Úvod</li>
+		<li>1.1 Role uživatelů</li>
+        <li>1.2 Cíl projektu</li>
+        <li>1.3 Hlavní funkce systému</li>
+        <li>2. Architektura systému</li>
+        <li>2.1 Přehled architektury</li>
+        <li>2.2 Diagram architektury</li>
+        <li>2.3 Frontend and Backend</li>
+        <li>2.5 Databáze</li>
+        <li>2.6 Přehled interakcí</li>
+		<li>3. Instalace</li>
+		<li>3.1 Přenos souborů na server</li>
+		<li>3.2 Nastavení přesměrování</li>
+		<li>3.3 Inicializace databáze</li>
+		<li>3.4 Softwarové požadavky</li>
+		<li>3.5 Konfigurace</li>
+		<li>3.6 Testování instalace</li>
+    </ul>
+	<dt>URL aplikace</dt>
+	<dd><a href="http://www.stud.fit.vutbr.cz/~xautor01/IIS">http://www.stud.fit.vutbr.cz/~xstepa77/IIS</a></dd>
+	</dl>
+	<h2>1. Úvod</h2>
+
+	<h2>Uživatele systemu pro testovaní</h2>
+	<table>
+	<tbody><tr><th>Login</th><th>Heslo</th><th>Role</th></tr>
+	<tr><td>admin@admin.cz</td><td>admin</td><td>Administrator</td></tr>
+	<tr><td>moderator@moderator.cz</td><td>moderator</td><td>Moderator</td></tr>
+	<tr><td>farmer@farmer.cz</td><td>farmer</td><td>Farmař</td></tr>
+	<tr><td>customer@customer.cz</td><td>customer</td><td>zákazník</td></tr>
+	</tbody></table>
+
+	<h3>Video</h3>
+	<p>Podívejte se na záznam, který demonstruje funkčnost administrátorského rozhraní:</p>
+	<a href="https://drive.google.com/file/d/11U7iBECHRzwtYa4gr8NbLlAKq6wUKBlj/view?usp=drive_link" download>Video administrátorského rozhraní</a>
+
+
+	<p>Projekt je zaměřen na vytvoření informačního systému pro nabídky ovoce a zeleniny.
+       Tento systém umožní správu kategorií plodin, jejich atributů, nabídek od farmářů a událostí pro samosběr.</p>
+
+    <h3>1.1 Cíl projektu</h3>
+    <p>Hlavním cílem projektu je vytvořit funkční webový systém, který umožní farmářům a zákazníkům efektivní správu nabídek a objednávek ovoce a zeleniny.</p>
+
+    <h3>1.2 Hlavní funkce systému</h3>
+    <ul>
+        <li>Správa kategorií plodin a jejich atributů.</li>
+        <li>Umožnění farmářům přidávat nabídky a spravovat dostupnost plodin.</li>
+        <li>Podpora zákazníků při hledání, porovnávání a objednávání produktů.</li>
+        <li>Správa událostí pro samosběr.</li>
+    </ul>
+
+    <h3>1.3 Role uživatelů</h3>
+    <ul>
+        <li><strong>Administrátor:</strong> spravuje uživatele a vytváří moderátory.</li>
+        <li><strong>Moderátor:</strong> spravuje kategorie a atributy plodin, schvaluje nové návrhy kategorií.</li>
+        <li><strong>Registrovaný uživatel (farmář/zákazník):</strong> přidává produkty, spravuje objednávky a účastní se událostí.</li>
+        <li><strong>Neregistrovaný uživatel:</strong> vyhledává produkty, porovnává ceny a zobrazuje nabídky farmářů.</li>
+    </ul>
+
+    <h2>2. Architektura systému</h2>
+    <p>Tento systém je navržen s využitím vícevrstvé architektury, která zahrnuje tři hlavní komponenty: uživatelské rozhraní (frontend), serverovou část (backend) a databázi (database).</p>
+
+    <h3>2.1 Přehled architektury</h3>
+    <p>Architektura systému je rozdělena do následujících vrstev:</p>
+    <ul>
+        <li><strong>Frontend:</strong> Uživatelské rozhraní poskytuje přístup k systému prostřednictvím webového prohlížeče. Bylo vytvořeno pomocí HTML5, CSS a JavaScriptu.</li>
+        <li><strong>Backend:</strong> Serverová část implementovaná v jazyce PHP. Zajišťuje zpracování požadavků uživatelů.</li>
+        <li><strong>Databáze:</strong> Používá relační databázi MySQL pro ukládání všech dat.</li>
+    </ul>
+
+    <h3>2.2 Diagram architektury</h3>
+	<p><img src="doc/diagram.jpg" alt="Diagram architektury systému" style="max-width: 50%; height: auto;"></p>
+
+	<h2>2.3 Frontend a Backend</h2>
+	<ul>
+		<li><strong>styles.css:</strong> Obsahuje styly pro uživatelské rozhraní, včetně responzivního designu, animací a základních vizuálních prvků.</li>
+		<li><strong>script.js:</strong> Implementuje dynamické prvky uživatelského rozhraní, jako jsou filtrování, správa modálních oken a aktualizace prvků stránky bez obnovení.</li>
+	</ul>
+	
+	<h3>Autentizace a správa uživatelů</h3>
+	<ul>
+		<li><strong>auth.php:</strong> Funkce pro autentizaci uživatelů, kontrolu přístupových práv a zpracování přihlášení relací.</li>
+		<li><strong>register.php:</strong> Formulář pro registraci nových uživatelů s validací údajů.</li>
+		<li><strong>register_handler.php:</strong> Zpracování dat z registračního formuláře a bezpečné přidání uživatele do databáze.</li>
+		<li><strong>login_handler.php:</strong> Ověřování přihlašovacích údajů a nastavení relace uživatele.</li>
+		<li><strong>logout.php:</strong> Ukončení relace uživatele a přesměrování na přihlašovací stránku.</li>
+	</ul>
+	<h3>Profil</h3>
+	<ul>
+		<li><strong>profile.php:</strong> Stránka uživatelského profilu, která umožňuje editaci osobních údajů a přehled o historii aktivit.</li>
+		<li><strong>add_product.php:</strong> Formulář pro farmáře na přidání nových produktů s povinným zadáním atributů.</li>
+		<li><strong>update_product.php:</strong> Funkce pro aktualizaci informací o produktech, jako jsou ceny, množství nebo popis.</li>
+		<li><strong>delete_product.php:</strong> Bezpečné odstranění produktů včetně přidružených obrázků.</li>
+		<li><strong>propose_category.php:</strong> Možnost uživatele navrhnout nové kategorie produktů.</li>
+		<li><strong>apply_event.php:</strong> Formulář pro přihlášení na události a správu účasti.</li>
+	</ul>
+
+	<h3>Správa kategorií, atributů a produktů moderátorem</h3>
+	<ul>
+		<li><strong>manage_categories.php:</strong> Stránka pro správu kategorií s možností editace názvů a mazání. Přístupná pouze moderátorům.</li>
+		<li><strong>add_category.php:</strong> Nástroj pro přidání nových kategorií a jejich hierarchickou správu.</li>
+		<li><strong>add_attribute.php:</strong> Přidávání atributů k produktům.</li>
+		<li><strong>manage_all_attributes.php:</strong> Rozhraní pro komplexní správu atributů všech kategorií.</li>
+		<li><strong>manage_applications.php:</strong> Stránka určená k vyřizování žádostí o status farmáře nebo organizaci událostí.</li>
+		<li><strong>manage_attributes.php:</strong> Modulární okno pro přidávání a odebírání atributů ve vybrané kategorii.</li>
+	</ul>
+
+	<h3>Stránky s produkty</h3>
+	<ul>
+		<li><strong>index.php:</strong> Hlavní stránka systému zobrazující vybrané produkty a obsahující hlavní banner s odkazy na události.</li>
+		<li><strong>advanced_search.php:</strong> Pokročilé vyhledávání s prefixy a možností filtrace.</li>
+	</ul>
+
+	<h3>Správa košíku a objednávek</h3>
+	<ul>
+		<li><strong>cart.php:</strong> Stránka, která zobrazuje obsah košíku a umožňuje jeho úpravu.</li>
+		<li><strong>add_to_cart.php:</strong> Funkce pro přidání produktů do košíku a kontrolu dostupnosti zboží.</li>
+		<li><strong>update_cart.php:</strong> Nástroj pro úpravu množství položek v košíku a jejich případné odstranění.</li>
+		<li><strong>checkout.php:</strong> Proces dokončení objednávky.</li>
+		<li><strong>my_orders.php:</strong> Zobrazuje minulá objednávky a objednávky čekající na přijetí/odmítnutí farmářem. Po dokončení objednávky je možné zanechat hodnocení.</li>
+	</ul>
+
+	<h3>Produkty</h3>
+	<ul>
+		<li><strong>product.php:</strong> Stránka s detailními informacemi o konkrétním produktu.</li>
+		<li><strong>get_category_attributes.php:</strong> Algoritmus pro zobrazení atributů kategorií, včetně atributů nadřazených kategorií.</li>
+	</ul>
+
+	<h3>Správa událostí</h3>
+	<ul>
+		<li><strong>event.php:</strong> Stránka zobrazující podrobné informace o konkrétní události.</li>
+		<li><strong>events.php:</strong> Přehled všech událostí s možností přidání do seznamu zájmů.</li>
+		<li><strong>handle_interests.php:</strong> Zpracování interakce uživatelů s produkty, kategoriemi a událostmi.</li>
+	</ul>
+
+	<h3>Řídicí panely</h3>
+	<ul>
+		<li><strong>admin_dashboard.php:</strong> Hlavní panel administrátora pro správu uživatelů a přístup k analytickým statistikám systému.</li>
+		<li><strong>farmer_dashboard.php:</strong> Panel farmáře s přehledem jeho statistik a aktivit.</li>
+	</ul>
+
+	<h3>Pomocné soubory a knihovny</h3>
+	<ul>
+		<li><strong>db.php:</strong> Správa připojení k databázi a provádění SQL dotazů s bezpečnostními parametry.</li>
+		<li><strong>validation.php:</strong> Funkce pro validaci vstupních dat formulářů a jejich kontrolu na konzistenci.</li>
+		<li><strong>layout.php:</strong> Šablony pro opakující se části uživatelského rozhraní, jako jsou hlavičky a patičky stránek.</li>
+	</ul>
+
+	<h3>2.5 Databáze</h3>
+	<p>Databáze je klíčovým prvkem systému, který spravuje a ukládá veškerá data.</p>
+
+	<h3>2.6 Přehled interakcí</h3>
+	<p>Proces interakce mezi vrstvami probíhá následovně:</p>
+	<ol>
+		<li>Uživatel provede akci na frontendu aplikace.</li>
+		<li>Požadavek je odeslán na backend server.</li>
+		<li>Backend server požadavek zpracuje a vrátí odpověď.</li>
+		<li>Frontend uživateli zobrazí odpovídající výsledek.</li>
+	</ol>
+
+	<h2>3. Instalace</h2>
+
+	<p>Postup instalace a konfigurace aplikace na server:</p>
+
+	<h3>3.1 Přenos souborů na server</h3>
+	<p>Pro začátek jsem na serveru vytvořil složku <code>WWW/IIS/</code> v kořenovém adresáři webového serveru. Poté jsem pomocí příkazu
+		<code>scp -r</code> přenesl všechny zdrojové soubory projektu na server:</p>
+	<pre><code>scp -r IIS/* xstepa77@stud.fit.vutbr.cz:/home/xstepa77/WWW/IIS/</code></pre>
+
+	<h3>3.2 Nastavení přesměrování</h3>
+	<p>Aby bylo možné přistupovat k aplikaci na adrese <a href="http://www.stud.fit.vutbr.cz/~xstepa77/IIS/">http://www.stud.fit.vutbr.cz/~xstepa77/IIS/</a>, vytvořil jsem přesměrování. Ve složce <code>IIS/</code> byl vytvořen soubor <code>index.php</code> s následujícím obsahem:</p>
+	<pre><code>&lt;?php
+header("Location: http://www.stud.fit.vutbr.cz/~xstepa77/IIS/frontend/index.php");
+exit;
+?&gt;</code></pre>
+
+	<h3>3.3 Inicializace databáze</h3>
+	<p>Pro inicializaci databáze bylo nutné provést import struktury a dat. To lze udělat pomocí nástroje <code>phpMyAdmin</code> nebo příkazového řádku MySQL:</p>
+	<pre><code>mysql -u xstepa77 -p xstepa77 &lt; green_market.sql</code></pre>
+
+	<h3>3.4 Softwarové požadavky</h3>
+	<ul>
+		<li><strong>PHP:</strong> Verze 7.0 (nebo vyšší).</li>
+		<li><strong>MySQL:</strong> Verze 5.7 (nebo vyšší).</li>
+		<li><strong>Webový server:</strong> Apache nebo Nginx.</li>
+	</ul>
+
+	<h3>3.5 Konfigurace</h3>
+	<p>Po přenosu souborů na server je potřeba upravit konfigurační soubor <code>db.php</code>, aby obsahoval správné přihlašovací údaje k databázi:</p>
+	<pre><code>&lt;?php
+$host = 'localhost';
+$socket = '/path/to/socket';
+$dbname = 'root';
+$user = 'root';
+$password = 'password';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;unix_socket=$socket;charset=utf8", $user, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    echo "Database connection failed: " . $e->getMessage();
+    die();
+}
+?&gt;</code></pre>
+
+	<h3>3.6 Testování instalace</h3>
+	<p>Po úspěšné instalaci by měla být aplikace dostupná na adrese:
+		<a href="http://www.stud.fit.vutbr.cz/~xstepa77/IIS/frontend/index.php">http://www.stud.fit.vutbr.cz/~xstepa77/IIS/</a>.</p>
+</body>
+</html>

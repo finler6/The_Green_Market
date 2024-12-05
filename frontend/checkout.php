@@ -26,7 +26,7 @@ $total = 0;
 
 if (!empty($cart)) {
     $placeholders = implode(',', array_fill(0, count($cart), '?'));
-    $query = "SELECT id, name, price, quantity FROM products WHERE id IN ($placeholders)";
+    $query = "SELECT id, name, price, price_unit, quantity AS stock_quantity, quantity_unit FROM products WHERE id IN ($placeholders)";
     $stmt = $pdo->prepare($query);
     $stmt->execute(array_keys($cart));
     $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -38,23 +38,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     }
 
     $order_items = [];
-    $total_price = 0;
-
     foreach ($products as $product) {
         $product_id = $product['id'];
         $quantity = $cart[$product_id]['quantity'];
 
-        if ($quantity > $product['quantity']) {
+        if ($quantity > $product['stock_quantity']) {
             $errors[] = "Not enough stock for product: " . htmlspecialchars($product['name']);
         } else {
-            $item_total = $product['price'] * $quantity;
-            $total_price += $item_total;
+            $total_price = $product['price'] * $quantity;
             $order_items[] = [
                 'product_id' => $product_id,
                 'quantity' => $quantity,
+                'quantity_unit' => $product['quantity_unit'],
                 'price_per_unit' => $product['price'],
-                'total_price' => $item_total
+                'price_unit' => $product['price_unit'],
+                // Удаляем 'total_price' из массива $order_items
             ];
+            $total += $total_price;
         }
     }
 
@@ -62,17 +62,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         try {
             $pdo->beginTransaction();
 
-            $query = "INSERT INTO orders (customer_id, status, order_date, total_price) 
-                      VALUES (:customer_id, 'pending', NOW(), :total_price)";
+            // Вставляем 'total_price' в таблицу 'orders'
+            $query = "INSERT INTO orders (customer_id, total_price, status, order_date) VALUES (:customer_id, :total_price, 'pending', NOW())";
             $stmt = $pdo->prepare($query);
             $stmt->execute([
                 'customer_id' => $customer_id,
-                'total_price' => $total_price
+                'total_price' => $total
             ]);
             $order_id = $pdo->lastInsertId();
 
-            $query = "INSERT INTO orderitems (order_id, product_id, quantity, price_per_unit) 
-                      VALUES (:order_id, :product_id, :quantity, :price_per_unit)";
+            // Удаляем 'total_price' из списка столбцов и параметров
+            $query = "INSERT INTO orderitems (order_id, product_id, quantity, quantity_unit, price_per_unit, price_unit) 
+                      VALUES (:order_id, :product_id, :quantity, :quantity_unit, :price_per_unit, :price_unit)";
             $stmt = $pdo->prepare($query);
 
             foreach ($order_items as $item) {
@@ -80,7 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
                     'order_id' => $order_id,
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
-                    'price_per_unit' => $item['price_per_unit']
+                    'quantity_unit' => $item['quantity_unit'],
+                    'price_per_unit' => $item['price_per_unit'],
+                    'price_unit' => $item['price_unit'],
+                    // Удаляем 'total_price' из параметров
                 ]);
 
                 $update_query = "UPDATE products SET quantity = quantity - :quantity WHERE id = :product_id";
@@ -122,34 +126,40 @@ ob_start();
 <?php if (!empty($products)): ?>
     <table class="table table-bordered text-center">
         <thead>
-            <tr>
-                <th>Product</th>
-                <th>Price</th>
-                <th>Quantity</th>
-                <th>Total</th>
-            </tr>
+        <tr>
+            <th>Product</th>
+            <th>Price per Unit</th>
+            <th>Quantity</th>
+            <th>Subtotal</th>
+        </tr>
         </thead>
         <tbody>
-            <?php foreach ($products as $product): ?>
-                <?php
-                $product_id = $product['id'];
-                $quantity = $cart[$product_id]['quantity'];
-                $subtotal = $product['price'] * $quantity;
-                $total += $subtotal;
-                ?>
-                <tr>
-                    <td><?= htmlspecialchars($product['name']) ?></td>
-                    <td>$<?= number_format($product['price'], 2) ?></td>
-                    <td><?= htmlspecialchars($quantity) ?></td>
-                    <td>$<?= number_format($subtotal, 2) ?></td>
-                </tr>
-            <?php endforeach; ?>
+        <?php foreach ($products as $product): ?>
+            <?php
+            $product_id = $product['id'];
+            $quantity = $cart[$product_id]['quantity'];
+            $subtotal = $product['price'] * $quantity;
+            ?>
+            <tr>
+                <td><?= htmlspecialchars($product['name']) ?></td>
+                <td>
+                    $<?= number_format($product['price'], 2) ?>
+                    <?= htmlspecialchars(str_replace('_', ' ', $product['price_unit'])) ?>
+                </td>
+                <td>
+                    <?= htmlspecialchars($quantity) ?>
+                    <?= htmlspecialchars($product['quantity_unit']) ?>
+                </td>
+                <td>$<?= number_format($subtotal, 2) ?></td>
+            </tr>
+            <?php $total += $subtotal; ?>
+        <?php endforeach; ?>
         </tbody>
         <tfoot>
-            <tr>
-                <th colspan="3">Total</th>
-                <th>$<?= number_format($total, 2) ?></th>
-            </tr>
+        <tr>
+            <th colspan="3">Total</th>
+            <th>$<?= number_format($total, 2) ?></th>
+        </tr>
         </tfoot>
     </table>
     <form method="POST" action="checkout.php">

@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="5d088ce7-fe04-43c9-a4cd-6ec149dbf608" name="Changes" comment="перед вставкой">
+      <change afterPath="$PROJECT_DIR$/sql/xstepa77.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/db.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/db.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/add_to_cart.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/add_to_cart.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/admin_dashboard.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/admin_dashboard.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/cart.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/cart.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/checkout.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/checkout.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/customer_dashboard.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/event.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/event.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/events.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/events.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/farmer_dashboard.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/farmer_dashboard.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/index.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/index.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/manage_categories.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/manage_categories.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/my_orders.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/my_orders.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/product.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/product.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/profile.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/profile.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/propose_category_handler.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/propose_category.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/register.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/register.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/update_cart.php" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/update_cart.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/event1.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/event2.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/placeholder.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/placeholder2.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/placeholder3.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/test1.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-grid.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-grid.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-grid.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-grid.min.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-grid.rtl.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-grid.rtl.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-grid.rtl.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-grid.rtl.min.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-reboot.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-reboot.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-reboot.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-reboot.min.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-reboot.rtl.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-reboot.rtl.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-reboot.rtl.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-reboot.rtl.min.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-utilities.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-utilities.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-utilities.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-utilities.min.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-utilities.rtl.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-utilities.rtl.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-utilities.rtl.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap-utilities.rtl.min.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap.min.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap.rtl.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap.rtl.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap.rtl.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/bootstrap/bootstrap.rtl.min.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/all.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/all.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/brands.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/brands.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/fontawesome.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/fontawesome.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/regular.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/regular.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/solid.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/solid.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/svg-with-js.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/svg-with-js.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/v4-font-face.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/v4-font-face.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/v4-shims.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/v4-shims.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/v5-font-face.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/fonts/v5-font-face.min.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/css/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/interface/css/styles.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/bootstrap/bootstrap.bundle.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/bootstrap/bootstrap.bundle.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/bootstrap/bootstrap.bundle.min.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/bootstrap/bootstrap.bundle.min.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/bootstrap/bootstrap.esm.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/bootstrap/bootstrap.esm.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/bootstrap/bootstrap.esm.min.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/bootstrap/bootstrap.esm.min.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/bootstrap/bootstrap.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/bootstrap/bootstrap.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/bootstrap/bootstrap.min.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/bootstrap/bootstrap.min.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/fonts/all.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/fonts/all.min.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/fonts/brands.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/fonts/brands.min.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/fonts/conflict-detection.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/fonts/conflict-detection.min.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/fonts/fontawesome.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/fonts/fontawesome.min.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/fonts/regular.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/fonts/regular.min.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/fonts/solid.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/fonts/solid.min.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/fonts/v4-shims.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/js/fonts/v4-shims.min.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/templates/layout.php" beforeDir="false" afterPath="$PROJECT_DIR$/interface/templates/layout.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/webfonts/fa-brands-400.ttf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/webfonts/fa-brands-400.woff2" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/webfonts/fa-regular-400.ttf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/webfonts/fa-regular-400.woff2" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/webfonts/fa-solid-900.ttf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/webfonts/fa-solid-900.woff2" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/webfonts/fa-v4compatibility.ttf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/interface/webfonts/fa-v4compatibility.woff2" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ComposerSettings">
+    <execution />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;finler6&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/finler6/The_Green_Market.git&quot;,
+    &quot;accountId&quot;: &quot;b6490374-6658-4db6-a8db-6a834df41267&quot;
+  }
+}</component>
+  <component name="PhpWorkspaceProjectConfiguration" interpreter_name="PHP" />
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="2pH4oiDLBqYapuugS2B7xR2ZJDQ" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main__local",
+    "last_opened_file_path": "C:/xampp/htdocs/ISA",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "reference.settings.deploy.options",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\xampp\htdocs\ISA\frontend" />
+      <recent name="C:\xampp\htdocs\ISA\interface\templates" />
+      <recent name="C:\xampp\htdocs\ISA" />
+      <recent name="C:\xampp\htdocs\ISA\frontend\old" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-e768b9ed790e-JavaScript-PS-243.21565.202" />
+        <option value="bundled-php-predefined-a98d8de5180a-5fbe0c30323e-com.jetbrains.php.sharedIndexes-PS-243.21565.202" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="5d088ce7-fe04-43c9-a4cd-6ec149dbf608" name="Changes" comment="" />
+      <created>1732409843379</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1732409843379</updated>
+      <workItem from="1732409844546" duration="4193000" />
+      <workItem from="1732461196790" duration="61057000" />
+    </task>
+    <task id="LOCAL-00001" summary="идет обьеденение">
+      <option name="closed" value="true" />
+      <created>1732413679994</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1732413679994</updated>
+    </task>
+    <task id="LOCAL-00002" summary="code is working">
+      <option name="closed" value="true" />
+      <created>1732546870086</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1732546870086</updated>
+    </task>
+    <task id="LOCAL-00003" summary="перед вставкой">
+      <option name="closed" value="true" />
+      <created>1732552860074</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1732552860074</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="origin/Making-Shit" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="идет обьеденение" />
+    <MESSAGE value="code is working" />
+    <MESSAGE value="перед вставкой" />
+    <option name="LAST_COMMIT_MESSAGE" value="перед вставкой" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+</project>

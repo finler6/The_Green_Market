@@ -1,4 +1,5 @@
 <?php
+require_once '../backend/db.php';
 $role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : '';
 
 if (empty($_SESSION['csrf_token'])) {
@@ -8,6 +9,38 @@ if (empty($_SESSION['csrf_token'])) {
 $formErrors = $_SESSION['form_errors'] ?? [];
 $formData = $_SESSION['form_data'] ?? [];
 unset($_SESSION['form_errors'], $_SESSION['form_data']);
+
+if (isset($_SESSION['user_id'])) {
+    $user_id = $_SESSION['user_id'];
+
+    $current_date = date('Y-m-d');
+
+    $query = "
+        SELECT e.id AS event_id, e.name AS event_name, e.date AS event_date
+        FROM userinterests ui
+        JOIN events e ON ui.event_id = e.id
+        LEFT JOIN notifications n ON n.event_id = e.id AND n.user_id = ui.user_id
+        WHERE ui.user_id = :user_id
+        AND e.date >= :current_date AND e.date <= DATE_ADD(:current_date, INTERVAL 1 DAY)
+        AND (n.is_read = 0 OR n.is_read IS NULL)
+    ";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([
+        'user_id' => $user_id,
+        'current_date' => $current_date
+    ]);
+    $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (!empty($events)) {
+        $insert_stmt = $pdo->prepare("INSERT INTO notifications (user_id, event_id, is_read) VALUES (:user_id, :event_id, 0) ON DUPLICATE KEY UPDATE is_read = 0");
+        foreach ($events as $event) {
+            $insert_stmt->execute([
+                'user_id' => $user_id,
+                'event_id' => $event['event_id']
+            ]);
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -41,6 +74,18 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
                     <?php elseif ($_SESSION['user_role'] === 'farmer'): ?>
                         <li><a href="../frontend/<?= htmlspecialchars($role) ?>_dashboard.php">Dashboard</a></li>
                     <?php endif; ?>
+                    <li class="navbar-notifications">
+                        <a href="#" id="notificationIcon">
+                            <img src="../icons/notificationIcon.png" alt="Notifications" class="notification-icon">
+                            <span id="notificationCount" class="notification-count">0</span>
+                        </a>
+                        <div id="notificationPanel" class="notification-panel">
+                            <div id="notificationList">
+                                <p class="text-center">No new notifications.</p>
+                            </div>
+                            <button id="clearNotifications" class="btn btn-link">Mark all as read</button>
+                        </div>
+                    </li>
                     <li class="navbar-profile">
                         <a href="../frontend/profile.php">
                             <img src="../icons/profileIcon.png" alt="Profile" class="profile-icon">
@@ -181,6 +226,76 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
         <p>&copy; <?= date('Y') ?> Green Market. All rights reserved.</p>
     </div>
 </footer>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const notificationIcon = document.getElementById('notificationIcon');
+        const notificationPanel = document.getElementById('notificationPanel');
+        const notificationCount = document.getElementById('notificationCount');
+        const notificationList = document.getElementById('notificationList');
+        const clearNotifications = document.getElementById('clearNotifications');
+
+        function loadNotifications() {
+            fetch('notification.php?action=fetch')
+                    .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const notifications = data.notifications;
+                        notificationList.innerHTML = '';
+                        if (notifications.length > 0) {
+                            notifications.forEach(notification => {
+                                const eventLink = document.createElement('a');
+                                eventLink.href = 'event.php?id=' + notification.event_id;
+                                eventLink.textContent = `${notification.event_name} is happening on ${notification.event_date}`;
+                                eventLink.classList.add('notification-item');
+                                notificationList.appendChild(eventLink);
+                            });
+                            notificationCount.textContent = notifications.length;
+                        } else {
+                            notificationList.innerHTML = '<p class="text-center">No new notifications.</p>';
+                            notificationCount.textContent = '0';
+                        }
+                    } else {
+                        console.error('Error fetching notifications:', data.error);
+                        notificationList.innerHTML = '<p class="text-center text-danger">Error loading notifications.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        loadNotifications();
+    
+        setInterval(loadNotifications, 60000);
+        notificationIcon.addEventListener('click', (e) => {
+            e.preventDefault();
+            notificationPanel.classList.toggle('show');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!notificationIcon.contains(e.target) && !notificationPanel.contains(e.target)) {
+                notificationPanel.classList.remove('show');
+            }
+        });
+
+        clearNotifications.addEventListener('click', () => {
+            fetch('notification.php?action=mark_as_read')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        notificationList.innerHTML = '<p class="text-center">No new notifications.</p>';
+                        notificationCount.textContent = '0';
+                    } else {
+                        console.error('Error marking notifications as read:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        });
+    });
+    </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../interface/js/script.js"></script>

@@ -19,7 +19,7 @@ ob_start();
             <tr>
                 <th>Product</th>
                 <th>Price</th>
-                <th>Quantity</th>
+                <th>Quantity (Unit)</th>
                 <th>Total</th>
                 <th>Actions</th>
             </tr>
@@ -28,24 +28,28 @@ ob_start();
             <?php foreach ($cart as $product_id => $item): ?>
                 <?php $item_total = $item['price'] * $item['quantity']; ?>
                 <tr>
-                <td>
-                    <a href="product.php?id=<?= htmlspecialchars($product_id) ?>" class="product-link">
-                        <?= htmlspecialchars($item['name']) ?>
-                    </a>
-                </td>
-                    <td>$<?= number_format($item['price'], 2) ?></td>
+                    <td>
+                        <a href="product.php?id=<?= htmlspecialchars($product_id) ?>" class="product-link">
+                            <?= htmlspecialchars($item['name']) ?>
+                        </a>
+                    </td>
+                    <td>
+                        $<?= number_format($item['price'], 2) ?> 
+                        <?= htmlspecialchars(str_replace('_', ' ', $item['price_unit'])) ?>
+                    </td>
                     <td>
                         <form method="POST" action="update_cart.php" style="display: inline;">
                             <input 
                                 type="number" 
                                 name="quantity" 
-                                value="<?= htmlspecialchars($_SESSION['cart'][$product_id]['quantity']) ?>" 
+                                value="<?= htmlspecialchars($item['quantity']) ?>" 
                                 min="1" 
-                                max="<?= htmlspecialchars($product['quantity']) ?>" 
+                                max="<?= htmlspecialchars($item['stock']) ?>" 
                                 style="width: 60px; text-align: center;" 
                                 onchange="this.form.submit()">
                             <input type="hidden" name="product_id" value="<?= htmlspecialchars($product_id) ?>">
                         </form>
+                        <?= htmlspecialchars($item['quantity_unit']) ?>
                     </td>
                     <td>$<?= number_format($item_total, 2) ?></td>
                     <td>
